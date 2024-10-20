@@ -1,0 +1,41 @@
+<<!-- templates/home.html -->
+{% extends "home.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block app_content %}
+<h4>This is where the quiz questions goes</h4>
+    <!-- quiz_detail.html -->
+<h1>{{ quiz.title }}</h1>
+
+<form method="POST">
+    {% csrf_token %}
+    
+    {% for data in quiz_data %}
+        <div class="question">
+            <h2>Question {{ data.question.question_number }}: {{ data.question.question_text }}</h2>
+            
+            <ul>
+                {% for answer in data.answers %}
+                    <li>
+                        <label>
+                            <input type="radio" name="question_{{ data.question.id }}" value="{{ answer.id }}">
+                            {{ answer.answer_text }}
+                        </label>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endfor %}
+    
+    <button type="submit">Submit Quiz</button>
+</form>
+{% endblock %}
+
+
+
+
+
+
+
+

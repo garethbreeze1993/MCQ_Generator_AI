@@ -1,0 +1,15 @@
+<<!-- templates/home.html -->
+{% extends "home.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block app_content %}
+<h4>This is where the quiz questions goes</h4>
+    <ul>
+    {% for quiz in quizzes %}
+        <li><a href={% url 'q_detail' quiz.pk %}>{{ quiz.title }}</a></li>
+    {% empty %}
+        <li>You have no quizzes.</li>
+    {% endfor %}
+    </ul>
+{% endblock %}
