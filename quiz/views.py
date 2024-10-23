@@ -1,11 +1,19 @@
+import os
+import json
+
+from django.conf import settings
 from django.shortcuts import render
+from django.http import HttpResponseRedirect, JsonResponse
+from .forms import QuizForm
 from .models import Quiz, Question, Answer
+from .utils import handle_uploaded_file
 from django.http import HttpResponse
 from django.views.generic.list import ListView
 from django.views.generic.detail import DetailView
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponseForbidden
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
 
 
 class QuizListView(LoginRequiredMixin, ListView):
@@ -18,7 +26,7 @@ class QuizListView(LoginRequiredMixin, ListView):
         # Filter quizzes by the current logged-in user
         return Quiz.objects.filter(user=self.request.user)
 
-
+@login_required(login_url='login')
 def get_quiz_data(request, pk):
     # Get the quiz by pk or return 404 if not found
     quiz = get_object_or_404(Quiz, pk=pk)
@@ -46,4 +54,41 @@ def get_quiz_data(request, pk):
     }
 
     return render(request, 'quiz/quiz_detail.html', context)
+@login_required(login_url='login')
+def create_quiz(request):
+
+    form = None
+
+    if request.method == 'GET':
+        form = QuizForm()
+
+    elif request.method == 'POST':
+        pass
+
+    else:
+        return HttpResponseForbidden('DONT HIT THIS')
+
+    return render(request, "quiz/create_quiz.html", {"form": form})
+@login_required(login_url='login')
+def generate_quiz(request):
+
+    if request.method == 'POST':
+        form = QuizForm(request.POST, request.FILES)
+        if form.is_valid():
+            json_file_path = os.path.join(settings.BASE_DIR, 'quiz', 'static', 'response.json')
+
+            # Open and read the JSON file
+            try:
+                with open(json_file_path, 'r') as json_file:
+                    data = json.load(json_file)
+
+                return JsonResponse(data)
+
+            except FileNotFoundError:
+                return JsonResponse({"error": "File not found."}, status=404)
+
+            except json.JSONDecodeError:
+                return JsonResponse({"error": "Error decoding JSON."}, status=500)
+    else:
+        return HttpResponseForbidden('DONT HIT THIS')
 
