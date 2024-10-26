@@ -2,7 +2,7 @@ import os
 import json
 
 from django.conf import settings
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import HttpResponseRedirect, JsonResponse
 from .forms import QuizForm
 from .models import Quiz, Question, Answer
@@ -81,6 +81,7 @@ def generate_quiz(request):
             try:
                 with open(json_file_path, 'r') as json_file:
                     data = json.load(json_file)
+                    data['quiz_name'] = request.POST['quiz_name']
 
                 return JsonResponse(data)
 
@@ -92,3 +93,40 @@ def generate_quiz(request):
     else:
         return HttpResponseForbidden('DONT HIT THIS')
 
+
+@login_required(login_url='login')
+def save_quiz(request):
+    whole_quiz = request.POST['whole_quiz']
+    whole_quiz_qs = json.loads(whole_quiz)
+
+    new_quiz = Quiz()
+    new_quiz.user = request.user
+    new_quiz.title = request.POST['quiz_name_user']
+    new_quiz.save()
+
+    for question in whole_quiz_qs:
+        question_key = list(question.keys())
+        question_number = question_key[0]
+        question_value = question[question_number]
+        new_question = Question()
+        new_question.quiz = new_quiz
+        new_question.question_text = question_value.get('question')
+        new_question.question_number = question_number
+
+        new_question.save()
+
+        for answer_key, answer_value in question_value['answers'].items():
+
+            new_answer = Answer()
+            new_answer.question = new_question
+            new_answer.answer_text = answer_value
+            new_answer.answer_number = answer_key
+
+            if int(answer_key) == int(question_value['correct_answer']):
+                new_answer.correct = True
+            else:
+                new_answer.correct = False
+
+            new_answer.save()
+
+    return redirect("index")

@@ -25,6 +25,17 @@ const generateQuiz = (event) => {
     .then(data => {
         // Handle the parsed JSON data here
         const items = data['items']
+        const wholeQuiz = document.createElement('input');
+        wholeQuiz.type = 'hidden';
+        wholeQuiz.name = `whole_quiz`;
+        wholeQuiz.value = JSON.stringify(items);
+
+        const quizNameIpt = data['quiz_name']
+        const quiz_name = document.createElement('input');
+        quiz_name.type = 'hidden';
+        quiz_name.name = `quiz_name_user`;
+        quiz_name.value = quizNameIpt;
+
         const quizContainer = document.getElementById('new_quiz');
         // let newElement = '';
         items.forEach((item, index) => {
@@ -34,6 +45,11 @@ const generateQuiz = (event) => {
             // Create the question heading
             const questionElement = document.createElement('h2');
             questionElement.textContent = `Question ${questionNumber}: ${questionData.question}`;
+
+            const question_input = document.createElement('input');
+            question_input.type = 'hidden';
+            question_input.name = `question_${questionNumber}`;
+            question_input.value = questionData.question;
 
             // Create the answer list
             const answerList = document.createElement('ul');
@@ -54,6 +70,14 @@ const generateQuiz = (event) => {
             input.name = `question_${questionNumber}`;
             input.value = answerId;
 
+            // Create the radio button
+            const answer_input = document.createElement('input');
+            answer_input.type = 'hidden';
+            answer_input.name = `question_${questionNumber}_answer_${answerId}`;
+            answer_input.value = answerText;
+
+            quizContainer.appendChild(answer_input)
+
             // Add the answer text to the label
             label.appendChild(input);
             label.appendChild(document.createTextNode(answerText));
@@ -67,11 +91,25 @@ const generateQuiz = (event) => {
             correctAnswerInput.name = `correct_answer_${questionNumber}`;
             correctAnswerInput.value = questionData.correct_answer;
 
+
+
+            // Optionally, append the button to the document body or another container
+
         // Append the question and answer list to the quiz container
         quizContainer.appendChild(questionElement);
+        quizContainer.appendChild(question_input)
         quizContainer.appendChild(answerList);
         quizContainer.appendChild(correctAnswerInput);
+
   });
+        const saveQuizLink = document.createElement("button");
+        saveQuizLink.setAttribute("id", "saveQuizBtn");
+        saveQuizLink.type = "submit";
+        saveQuizLink.textContent = "Save Quiz";
+        quizContainer.appendChild(saveQuizLink);
+        quizContainer.appendChild(wholeQuiz);
+        quizContainer.appendChild(quiz_name);
+
             }
         )
 }
