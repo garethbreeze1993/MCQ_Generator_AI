@@ -1,5 +1,7 @@
 import os
 import json
+import logging
+
 
 from django.conf import settings
 from django.shortcuts import render, redirect
@@ -15,6 +17,9 @@ from django.http import HttpResponseForbidden
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 
+logger = logging.getLogger("django_mcq")
+
+
 
 class QuizListView(LoginRequiredMixin, ListView):
     model = Quiz
@@ -28,12 +33,17 @@ class QuizListView(LoginRequiredMixin, ListView):
 
 @login_required(login_url='login')
 def get_quiz_data(request, pk):
+
+    logger.debug("testing output")
+    logger.debug(pk)
     # Get the quiz by pk or return 404 if not found
     quiz = get_object_or_404(Quiz, pk=pk)
 
     # Check if the logged-in user is associated with the quiz
     if quiz.user != request.user:
         return HttpResponseForbidden("You are not allowed to access this quiz.")
+
+    logger.debug(quiz)
 
     # Get the questions associated with this quiz
     questions = Question.objects.filter(quiz=quiz).order_by('question_number')
