@@ -1,18 +1,18 @@
-{"items":
-[{"1": {"question":  "What does the fox say",
-  "answers": {"1": "Moo", "2": "Ding"},
-  "correct_answer": "2"
-}
+{
+  "quiz_name": "Example Quiz Name",
+  "items":
+[
+{"question":  "What is the capital of France?",
+  "answers": ["London", "Paris", "New York", "Toulouse"],
+  "question_number": 1,
+  "correct_answer": "Paris"
 },
   {
-    "2": {
-      "question": "What does the cat say",
-      "answers": {
-        "1": "Meow",
-        "2": "Ding"
-      },
-      "correct_answer": "1"
-    }
+      "question": "What is the official currency of Germany",
+      "answers": ["Euro", "Dollar", "Deutschmark", "Pound"
+      ],
+      "correct_answer": "Euro",
+    "question_number": 2
   }
 ]
 }

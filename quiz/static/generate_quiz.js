@@ -39,8 +39,8 @@ const generateQuiz = (event) => {
         const quizContainer = document.getElementById('new_quiz');
         // let newElement = '';
         items.forEach((item, index) => {
-            const questionNumber = index + 1;
-            const questionData = item[questionNumber];
+            const questionNumber = item['question_number'];
+            const questionData = item;
 
             // Create the question heading
             const questionElement = document.createElement('h2');
@@ -55,8 +55,8 @@ const generateQuiz = (event) => {
             const answerList = document.createElement('ul');
 
             // Loop through the answers and create list items with radio buttons
-            Object.keys(questionData.answers).forEach(answerId => {
-            const answerText = questionData.answers[answerId];
+            questionData.answers.forEach((answer, index) => {
+            const answerText = answer;
 
             // Create a list item for each answer
             const listItem = document.createElement('li');
@@ -68,12 +68,12 @@ const generateQuiz = (event) => {
             const input = document.createElement('input');
             input.type = 'radio';
             input.name = `question_${questionNumber}`;
-            input.value = answerId;
+            input.value = index + 1;
 
             // Create the radio button
             const answer_input = document.createElement('input');
             answer_input.type = 'hidden';
-            answer_input.name = `question_${questionNumber}_answer_${answerId}`;
+            answer_input.name = `question_${questionNumber}_answer_${index + 1}`;
             answer_input.value = answerText;
 
             quizContainer.appendChild(answer_input)

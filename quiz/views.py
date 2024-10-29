@@ -109,30 +109,29 @@ def save_quiz(request):
     whole_quiz = request.POST['whole_quiz']
     whole_quiz_qs = json.loads(whole_quiz)
 
+    logger.debug(whole_quiz_qs)
+
     new_quiz = Quiz()
     new_quiz.user = request.user
     new_quiz.title = request.POST['quiz_name_user']
     new_quiz.save()
 
     for question in whole_quiz_qs:
-        question_key = list(question.keys())
-        question_number = question_key[0]
-        question_value = question[question_number]
         new_question = Question()
         new_question.quiz = new_quiz
-        new_question.question_text = question_value.get('question')
-        new_question.question_number = question_number
+        new_question.question_text = question.get('question')
+        new_question.question_number = question.get('question_number')
 
         new_question.save()
 
-        for answer_key, answer_value in question_value['answers'].items():
+        for answer_key, answer_value in enumerate(question['answers']):
 
             new_answer = Answer()
             new_answer.question = new_question
             new_answer.answer_text = answer_value
-            new_answer.answer_number = answer_key
+            new_answer.answer_number = answer_key + 1
 
-            if int(answer_key) == int(question_value['correct_answer']):
+            if answer_value == question['correct_answer']:
                 new_answer.correct = True
             else:
                 new_answer.correct = False
