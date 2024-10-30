@@ -111,7 +111,17 @@ const generateQuiz = (event) => {
         quizContainer.appendChild(quiz_name);
 
             }
-        )
+        ).catch(error => {
+
+            console.log(error)
+            const quizContainer = document.getElementById('new_quiz');
+            // Create the error heading
+            const errorElement = document.createElement('h2');
+            errorElement.textContent = `Cannot generate quiz at the moment please try again later`;
+            quizContainer.appendChild(errorElement);
+
+
+    })
 }
 
 

@@ -8,6 +8,7 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponseRedirect, JsonResponse
 from .forms import QuizForm
 from .models import Quiz, Question, Answer
+from .llm_integration import execute_llm_prompt_langchain, MultiChoiceQuizFormat, MultiChoiceQuestion
 from .utils import handle_uploaded_file
 from django.http import HttpResponse
 from django.views.generic.list import ListView
@@ -87,19 +88,39 @@ def generate_quiz(request):
         if form.is_valid():
             json_file_path = os.path.join(settings.BASE_DIR, 'quiz', 'static', 'response.json')
 
-            # Open and read the JSON file
             try:
-                with open(json_file_path, 'r') as json_file:
-                    data = json.load(json_file)
-                    data['quiz_name'] = request.POST['quiz_name']
+                llm_quiz_data = execute_llm_prompt_langchain(temperature=request.POST['temperature'],
+                                             number_of_questions=request.POST['number_of_questions'],
+                                                             quiz_name=request.POST['quiz_name'])
+            except Exception as e:
+                logger.error(e)
+                return JsonResponse({"error": "Error decoding JSON."}, status=500)
 
-                return JsonResponse(data)
+            # Open and read the JSON file
+            # try:
+            #     with open(json_file_path, 'r') as json_file:
+            #         data = json.load(json_file)
+            #
+            #         # try:
+            #         #     multi_quiz_model = MultiChoiceQuizFormat(**data)
+            #         # except Exception as e:
+            #         #     logger.error(e)
+            #
+            #         # else:
+            #         #     logger.debug('successs')
+            #         #     logger.debug(multi_quiz_model)
+
+
+            try:
+                success_response = JsonResponse(llm_quiz_data)
 
             except FileNotFoundError:
                 return JsonResponse({"error": "File not found."}, status=404)
 
             except json.JSONDecodeError:
                 return JsonResponse({"error": "Error decoding JSON."}, status=500)
+            else:
+                return success_response
     else:
         return HttpResponseForbidden('DONT HIT THIS')
 
