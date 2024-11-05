@@ -87,29 +87,17 @@ def generate_quiz(request):
         form = QuizForm(request.POST, request.FILES)
         if form.is_valid():
             json_file_path = os.path.join(settings.BASE_DIR, 'quiz', 'static', 'response.json')
+            logger.debug('inside view')
+            logger.info(request.FILES)
 
             try:
                 llm_quiz_data = execute_llm_prompt_langchain(temperature=request.POST['temperature'],
                                              number_of_questions=request.POST['number_of_questions'],
-                                                             quiz_name=request.POST['quiz_name'])
+                                                             quiz_name=request.POST['quiz_name'],
+                                                             file=request.FILES['file'])
             except Exception as e:
                 logger.error(e)
                 return JsonResponse({"error": "Error decoding JSON."}, status=500)
-
-            # Open and read the JSON file
-            # try:
-            #     with open(json_file_path, 'r') as json_file:
-            #         data = json.load(json_file)
-            #
-            #         # try:
-            #         #     multi_quiz_model = MultiChoiceQuizFormat(**data)
-            #         # except Exception as e:
-            #         #     logger.error(e)
-            #
-            #         # else:
-            #         #     logger.debug('successs')
-            #         #     logger.debug(multi_quiz_model)
-
 
             try:
                 success_response = JsonResponse(llm_quiz_data)

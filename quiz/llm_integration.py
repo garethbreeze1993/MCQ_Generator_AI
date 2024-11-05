@@ -1,4 +1,5 @@
 import logging
+from tempfile import NamedTemporaryFile
 from typing import List
 
 from openai import OpenAI
@@ -46,9 +47,13 @@ example_response_json = """{
 
 
 test_input = """
-        You are an expert Multiple Choice Quiz Generator. Given the above text it is your job to create a quiz of 
-        {number_of_questions} questions about Peterborough United FC. Each question should have four available  
-        options with only one being the correct answer.
+        You are an expert Multiple Choice Quiz Generator. It is your job to create a quiz of 
+        {number_of_questions} questions. 
+        
+        Use the following content to generate the questions:
+        {file_content}
+        
+        Each question should have four available options with only one being the correct answer.
         Make sure the questions are not repeated and check that all the questions relate to the text above.
         Ensure that there is {number_of_questions}
         Can you format the response like the RESPONSE JSON below.
@@ -89,21 +94,32 @@ def execute_llm_prompt_open_ai(temperature):
 
 
 
-def execute_llm_prompt_langchain(temperature: float, number_of_questions: int, quiz_name: str):
+def execute_llm_prompt_langchain(temperature: float, number_of_questions: int, quiz_name: str, file):
     model = ChatOpenAI(model="gpt-4o-mini", api_key=settings.OPEN_API_KEY, temperature=temperature)
+
+    with NamedTemporaryFile() as tempfile:
+
+        tempfile.write(file.read())
+        tempfile.seek(0)
+
+        loader = TextLoader(tempfile.name)
+        documents = loader.load()
+
+    file_content = documents[0].page_content
+
 
     # Set up a parser + inject instructions into the prompt template.
     parser = PydanticOutputParser(pydantic_object=MultiChoiceQuizFormat)
 
     prompt = PromptTemplate(
         template=test_input,
-        input_variables=["number_of_questions", "response_json", "quiz_name"],
+        input_variables=["number_of_questions", "response_json", "quiz_name", "file_content"],
     )
 
     # And a query intended to prompt a language model to populate the data structure.
     chain = prompt | model | parser
     output = chain.invoke({"number_of_questions": number_of_questions, "response_json": example_response_json,
-                           "quiz_name": quiz_name})
+                           "quiz_name": quiz_name, "file_content": file_content})
     logger.info('Inside LLM FUNC')
     return output.model_dump()
 
