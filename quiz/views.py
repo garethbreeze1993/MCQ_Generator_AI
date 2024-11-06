@@ -85,14 +85,11 @@ def generate_quiz(request):
 
     if request.method == 'POST':
         form = QuizForm(request.POST, request.FILES)
+
         if form.is_valid():
-            json_file_path = os.path.join(settings.BASE_DIR, 'quiz', 'static', 'response.json')
-            logger.debug('inside view')
-            logger.info(request.FILES)
 
             try:
-                llm_quiz_data = execute_llm_prompt_langchain(temperature=request.POST['temperature'],
-                                             number_of_questions=request.POST['number_of_questions'],
+                llm_quiz_data = execute_llm_prompt_langchain(number_of_questions=request.POST['number_of_questions'],
                                                              quiz_name=request.POST['quiz_name'],
                                                              file=request.FILES['file'])
             except Exception as e:
@@ -102,13 +99,18 @@ def generate_quiz(request):
             try:
                 success_response = JsonResponse(llm_quiz_data)
 
-            except FileNotFoundError:
-                return JsonResponse({"error": "File not found."}, status=404)
-
             except json.JSONDecodeError:
                 return JsonResponse({"error": "Error decoding JSON."}, status=500)
+
+            except Exception as e:
+                return JsonResponse({"error": "File not found."}, status=404)
+
             else:
                 return success_response
+        else:
+            form_errors_dict = dict(form.errors)
+            return JsonResponse({"error": "Validation error", "form_errors": form_errors_dict}, status=200)
+
     else:
         return HttpResponseForbidden('DONT HIT THIS')
 

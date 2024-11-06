@@ -1,7 +1,23 @@
 
 const generateQuiz = (event) => {
     event.preventDefault();  // Prevent the default form submission
-        // Fetch the URL and CSRF token from the form's data attributes
+
+    // Select all elements with the class "text-danger"
+    const spans = document.querySelectorAll("span.text-danger");
+
+    // Loop through each element and remove it
+    spans.forEach(span => span.remove());
+
+    // Select the form by its ID
+    const newQuizForm = document.getElementById("new_quiz_elems");
+
+    // Remove all children of the form except the CSRF token
+    Array.from(newQuizForm.children).forEach(child => {
+        newQuizForm.removeChild(child);
+    });
+
+
+    // Fetch the URL and CSRF token from the form's data attributes
     const form = event.target;
     const formData = new FormData(form);
     const url = form.getAttribute('data-url');
@@ -15,14 +31,24 @@ const generateQuiz = (event) => {
         }
     })
     .then(response => {
-        // Check if the response is OK (status code 200-299)
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
         // Parse the JSON from the response
         return response.json();
     })
     .then(data => {
+
+        if (data.error === 'Validation error'){
+            const formErrors = data.form_errors
+            Object.keys(formErrors).forEach(key => {
+                let inputElement = document.getElementById(`id_${key}`);
+                let spanElement = document.createElement("span");
+                spanElement.className = "text-danger";  // Set the class
+                spanElement.textContent = formErrors[key][0];  // Set the message text
+
+                // Insert the <span> element after the input element
+                inputElement.insertAdjacentElement("afterend", spanElement);
+            });
+            return
+        }
         // Handle the parsed JSON data here
         const items = data['items']
         const wholeQuiz = document.createElement('input');
@@ -36,8 +62,8 @@ const generateQuiz = (event) => {
         quiz_name.name = `quiz_name_user`;
         quiz_name.value = quizNameIpt;
 
-        const quizContainer = document.getElementById('new_quiz');
-        // let newElement = '';
+        const quizContainer = document.getElementById('new_quiz_elems');
+
         items.forEach((item, index) => {
             const questionNumber = item['question_number'];
             const questionData = item;
@@ -112,9 +138,7 @@ const generateQuiz = (event) => {
 
             }
         ).catch(error => {
-
-            console.log(error)
-            const quizContainer = document.getElementById('new_quiz');
+            const quizContainer = document.getElementById('new_quiz_elems');
             // Create the error heading
             const errorElement = document.createElement('h2');
             errorElement.textContent = `Cannot generate quiz at the moment please try again later`;

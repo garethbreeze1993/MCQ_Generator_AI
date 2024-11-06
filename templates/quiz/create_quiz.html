@@ -37,13 +37,13 @@
     </div>
 
     <!-- Temperature -->
-    <div class="form-group">
-        <label for="id_temperature">{{ form.temperature.label }}</label>
-        <input type="number" id="id_temperature" name="{{ form.temperature.name }}" value="{{ form.temperature.value }}" min="0" max="2" class="form-control">
-        {% for error in form.temperature.errors %}
-            <span class="text-danger">{{ error }}</span>
-        {% endfor %}
-    </div>
+{#    <div class="form-group">#}
+{#        <label for="id_temperature">{{ form.temperature.label }}</label>#}
+{#        <input type="number" id="id_temperature" name="{{ form.temperature.name }}" value="{{ form.temperature.value }}" min="0" max="2" class="form-control">#}
+{#        {% for error in form.temperature.errors %}#}
+{#            <span class="text-danger">{{ error }}</span>#}
+{#        {% endfor %}#}
+{#    </div>#}
 
     <button id="generate_quiz_btn" type="submit">Generate Quiz</button>
     </form>
@@ -51,6 +51,7 @@
     <br/>
     <form id="new_quiz" method="POST" action="{% url 'save_quiz' %}">
     {% csrf_token %}
+    <div id="new_quiz_elems"></div>
     </form>
     
 {% endblock %}

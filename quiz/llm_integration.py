@@ -94,8 +94,8 @@ def execute_llm_prompt_open_ai(temperature):
 
 
 
-def execute_llm_prompt_langchain(temperature: float, number_of_questions: int, quiz_name: str, file):
-    model = ChatOpenAI(model="gpt-4o-mini", api_key=settings.OPEN_API_KEY, temperature=temperature)
+def execute_llm_prompt_langchain(number_of_questions: int, quiz_name: str, file):
+    model = ChatOpenAI(model="gpt-4o-mini", api_key=settings.OPEN_API_KEY)
 
     with NamedTemporaryFile() as tempfile:
 
@@ -120,6 +120,6 @@ def execute_llm_prompt_langchain(temperature: float, number_of_questions: int, q
     chain = prompt | model | parser
     output = chain.invoke({"number_of_questions": number_of_questions, "response_json": example_response_json,
                            "quiz_name": quiz_name, "file_content": file_content})
-    logger.info('Inside LLM FUNC')
+
     return output.model_dump()
 
