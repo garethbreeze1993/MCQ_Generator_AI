@@ -5,6 +5,7 @@
 <h4>This is where the quiz questions goes</h4>
     <!-- quiz_detail.html -->
 <h1>{{ quiz.title }}</h1>
+    <a href={% url 'delete_quiz' quiz.pk %}>Delete Quiz</a>
 
 <form method="POST">
     {% csrf_token %}

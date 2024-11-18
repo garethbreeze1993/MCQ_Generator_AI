@@ -9,4 +9,5 @@ urlpatterns = [
     path('create', create_quiz, name='create_quiz'),
     path('generate', views.generate_quiz, name='generate_quiz'),
     path('save', views.save_quiz, name='save_quiz'),
+    path('delete/<int:pk>', views.QuizDeleteView.as_view(), name='delete_quiz'),
 ]

@@ -13,10 +13,12 @@ from .utils import handle_uploaded_file
 from django.http import HttpResponse
 from django.views.generic.list import ListView
 from django.views.generic.detail import DetailView
+from django.views.generic.edit import DeleteView
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponseForbidden
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
+from django.urls import reverse_lazy
 
 logger = logging.getLogger("django_mcq")
 
@@ -150,3 +152,16 @@ def save_quiz(request):
             new_answer.save()
 
     return redirect("index")
+
+
+class QuizDeleteView(DeleteView):
+    # specify the model you want to use
+    model = Quiz
+
+    # can specify success url
+    # url to redirect after successfully
+    # deleting object
+    success_url = reverse_lazy("index")
+
+    template_name = "quiz/confirm_delete.html"
+
