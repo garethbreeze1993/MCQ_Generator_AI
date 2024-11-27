@@ -1,0 +1,9 @@
+<<!-- templates/home.html -->
+{% extends "home.html" %}
+
+{% block app_content %}
+<h4>HOMEPAGE</h4>
+    <p>Quizzes section</p>
+    <a href="{% url 'index' %}">See your available quizzes or create a new one?</a>
+
+{% endblock %}

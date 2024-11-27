@@ -8,7 +8,7 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponseRedirect, JsonResponse
 from .forms import QuizForm
 from .models import Quiz, Question, Answer
-from .llm_integration import execute_llm_prompt_langchain, MultiChoiceQuizFormat, MultiChoiceQuestion
+from .llm_integration import execute_llm_prompt_langchain, execute_llm_prompt_pdf
 from .utils import handle_uploaded_file
 from django.http import HttpResponse
 from django.views.generic.list import ListView
@@ -90,10 +90,24 @@ def generate_quiz(request):
 
         if form.is_valid():
 
+            name_of_file = request.FILES['file'].name
+
+            if name_of_file.endswith('.pdf'):
+                pdf = True
+            else:
+                # file is .txt
+                pdf = False
+
+
             try:
-                llm_quiz_data = execute_llm_prompt_langchain(number_of_questions=request.POST['number_of_questions'],
-                                                             quiz_name=request.POST['quiz_name'],
-                                                             file=request.FILES['file'])
+                if not pdf:
+                    llm_quiz_data = execute_llm_prompt_langchain(number_of_questions=request.POST['number_of_questions'],
+                                                                 quiz_name=request.POST['quiz_name'],
+                                                                 file=request.FILES['file'])
+                else:
+                    llm_quiz_data = execute_llm_prompt_pdf(number_of_questions=request.POST['number_of_questions'],
+                                                                 quiz_name=request.POST['quiz_name'],
+                                                                 file=request.FILES['file'])
             except Exception as e:
                 logger.error(e)
                 return JsonResponse({"error": "Error decoding JSON."}, status=500)
@@ -101,10 +115,12 @@ def generate_quiz(request):
             try:
                 success_response = JsonResponse(llm_quiz_data)
 
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
+                logger.error(e)
                 return JsonResponse({"error": "Error decoding JSON."}, status=500)
 
             except Exception as e:
+                logger.error(e)
                 return JsonResponse({"error": "File not found."}, status=404)
 
             else:

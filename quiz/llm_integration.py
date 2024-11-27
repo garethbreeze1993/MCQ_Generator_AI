@@ -1,3 +1,4 @@
+import json
 import logging
 from tempfile import NamedTemporaryFile
 from typing import List
@@ -123,3 +124,5 @@ def execute_llm_prompt_langchain(number_of_questions: int, quiz_name: str, file)
 
     return output.model_dump()
 
+def execute_llm_prompt_pdf(number_of_questions: int, quiz_name: str, file):
+    return json.loads(example_response_json)
