@@ -75,9 +75,6 @@ def create_quiz(request):
     if request.method == 'GET':
         form = QuizForm()
 
-    elif request.method == 'POST':
-        pass
-
     else:
         return HttpResponseForbidden('DONT HIT THIS')
 

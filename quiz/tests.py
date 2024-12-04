@@ -2,6 +2,7 @@ from django.test import TestCase, Client
 from django.contrib.auth.models import User
 
 from quiz.models import Quiz, Question, Answer
+from quiz.forms import QuizForm
 
 
 class QuizTestCase(TestCase):
@@ -49,4 +50,69 @@ class QuizTestCase(TestCase):
         response = self.unauthenticated_client.get('/quiz/')
         # Client not logged in so will do a redirect
         self.assertEqual(response.status_code, 302)
+
+    def test_authenticated_client_get_quiz_detail_data(self):
+        pk = QuizTestCase.test_quiz.pk
+        # Get the questions associated with this quiz
+        questions = Question.objects.filter(quiz=QuizTestCase.test_quiz).order_by('question_number')
+
+        # For each question, get its answers
+        quiz_data = []
+        for question in questions:
+            answers = Answer.objects.filter(question=question).order_by('answer_number')
+            quiz_data.append({
+                'question': question,
+                'answers': answers
+            })
+
+        response = self.authenticated_client.get(f'/quiz/{pk}')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['quiz'], QuizTestCase.test_quiz)
+        self.assertEqual(len(response.context['quiz_data']), len(quiz_data))
+
+        for index, data in enumerate(quiz_data):
+            self.assertEqual(response.context['quiz_data'][index]['question'], quiz_data[index]['question'])
+            # Change into list for answers as problems with equality operations on queryset
+            self.assertEqual(
+                list(response.context['quiz_data'][index]['answers']), list(quiz_data[index]['answers']))
+
+    def test_unauthenticated_client_get_quiz_detail_data(self):
+        pk = QuizTestCase.test_quiz.pk
+        response = self.unauthenticated_client.get(f'/quiz/{pk}')
+        # Client not logged in so will do a redirect
+        self.assertEqual(response.status_code, 302)
+
+    def test_create_form_get_request(self):
+        # Simulate a GET request to the view
+        response = self.authenticated_client.get('/quiz/create')
+
+        # Check that the response status code is 200 (OK)
+        self.assertEqual(response.status_code, 200)
+
+        # Check that the correct template is used
+        self.assertTemplateUsed(response, "quiz/create_quiz.html")
+
+        # Check that the form is in the context
+        self.assertIn("form", response.context)
+        self.assertIsInstance(response.context["form"], QuizForm)
+
+    def test_create_form_post_request_returns_forbidden(self):
+        # Simulate a POST request to the view
+        response = self.authenticated_client.post('/quiz/create')
+
+        # Check that the response status code is 403 (Forbidden)
+        self.assertEqual(response.status_code, 403)
+
+        # Check the response content
+        self.assertEqual(response.content.decode(), 'DONT HIT THIS')
+
+    def test_unauthenticated_client_create_form(self):
+        response = self.unauthenticated_client.get('/quiz/create')
+        # Client not logged in so will do a redirect
+        self.assertEqual(response.status_code, 302)
+
+
+
+
 
