@@ -98,27 +98,28 @@ def generate_quiz(request):
 
             try:
                 if not pdf:
-                    llm_quiz_data = execute_llm_prompt_langchain(number_of_questions=request.POST['number_of_questions'],
-                                                                 quiz_name=request.POST['quiz_name'],
-                                                                 file=request.FILES['file'])
+                    llm_quiz_data = execute_llm_prompt_langchain(number_of_questions=form.cleaned_data['number_of_questions'],
+                                                                 quiz_name=form.cleaned_data['quiz_name'],
+                                                                 file=form.cleaned_data['file'])
                 else:
-                    llm_quiz_data = execute_llm_prompt_pdf(number_of_questions=request.POST['number_of_questions'],
-                                                                 quiz_name=request.POST['quiz_name'],
-                                                                 file=request.FILES['file'])
+                    llm_quiz_data = execute_llm_prompt_pdf(number_of_questions=form.cleaned_data['number_of_questions'],
+                                                                 quiz_name=form.cleaned_data['quiz_name'],
+                                                                 file=form.cleaned_data['file'])
             except Exception as e:
                 logger.error(e)
-                return JsonResponse({"error": "Error decoding JSON."}, status=500)
+                return JsonResponse({"error": "Error from llm integration"}, status=500)
 
             try:
+
+                if not pdf:
+                    # Force it to have quiz name of user input
+                    llm_quiz_data['quiz_name'] = form.cleaned_data['quiz_name']
+
                 success_response = JsonResponse(llm_quiz_data)
 
-            except json.JSONDecodeError as e:
+            except TypeError as e:
                 logger.error(e)
-                return JsonResponse({"error": "Error decoding JSON."}, status=500)
-
-            except Exception as e:
-                logger.error(e)
-                return JsonResponse({"error": "File not found."}, status=404)
+                return JsonResponse({"error": "Error when trying to make a JSONResponse."}, status=500)
 
             else:
                 return success_response
