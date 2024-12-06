@@ -10,9 +10,19 @@ Hi {{ user.username }}!
   {% csrf_token %}
   <button type="submit">Log Out</button>
 </form>
+    {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <li class="{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+   
     <a href={% url 'home' %}>Home</a>
+    
     {% block app_content %}
     {% endblock %}
+    
 {% else %}
 <p>You are not logged in</p>
 <a href="{% url 'login' %}">Log In</a>

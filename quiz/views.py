@@ -3,9 +3,9 @@ import json
 import logging
 
 
-from django.conf import settings
+from django.contrib import messages
 from django.shortcuts import render, redirect
-from django.http import HttpResponseRedirect, JsonResponse
+from django.http import HttpResponseRedirect, JsonResponse, Http404
 from .forms import QuizForm
 from .models import Quiz, Question, Answer
 from .llm_integration import execute_llm_prompt_langchain, execute_llm_prompt_pdf
@@ -67,6 +67,7 @@ def get_quiz_data(request, pk):
     }
 
     return render(request, 'quiz/quiz_detail.html', context)
+
 @login_required(login_url='login')
 def create_quiz(request):
 
@@ -79,6 +80,7 @@ def create_quiz(request):
         return HttpResponseForbidden('DONT HIT THIS')
 
     return render(request, "quiz/create_quiz.html", {"form": form})
+
 @login_required(login_url='login')
 def generate_quiz(request):
 
@@ -134,14 +136,26 @@ def generate_quiz(request):
 @login_required(login_url='login')
 def save_quiz(request):
     whole_quiz = request.POST['whole_quiz']
-    whole_quiz_qs = json.loads(whole_quiz)
+
+    try:
+        whole_quiz_qs = json.loads(whole_quiz)
+    except Exception as e:
+        logger.error(e)
+        messages.error(request, f"An error occurred: {str(e)}")
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
 
     logger.debug(whole_quiz_qs)
 
     new_quiz = Quiz()
     new_quiz.user = request.user
     new_quiz.title = request.POST['quiz_name_user']
-    new_quiz.save()
+
+    try:
+        new_quiz.save()
+    except Exception as e:
+        logger.error(e)
+        messages.error(request, f"An error occurred: {str(e)}")
+        return JsonResponse({"error": "Error when saving quiz"}, status=500)
 
     for question in whole_quiz_qs:
         new_question = Question()
@@ -149,7 +163,15 @@ def save_quiz(request):
         new_question.question_text = question.get('question')
         new_question.question_number = question.get('question_number')
 
-        new_question.save()
+        try:
+            new_question.save()
+        except Exception as e:
+            logger.error(e)
+            # I have changed the DB Setup to mean that the DB transaction only gets saved when the HTTP request is finished
+            # and not after each .save()
+            # new_quiz.delete()
+            messages.error(request, f"An error occurred: {str(e)}")
+            return JsonResponse({"error": "Error when saving question"}, status=500)
 
         for answer_key, answer_value in enumerate(question['answers']):
 
@@ -163,12 +185,22 @@ def save_quiz(request):
             else:
                 new_answer.correct = False
 
-            new_answer.save()
+            try:
+                new_answer.save()
+            except Exception as e:
+                # Unable to test as unsure how I will hit this in a unit test
+                logger.error(e)
+                # I have changed the DB Setup to mean that the DB transaction only gets saved when the HTTP request is finished
+                # and not after each .save()
+                # new_quiz.delete()
+                messages.error(request, f"An error occurred: {str(e)}")
+                return JsonResponse({"error": "Error when saving answer"}, status=500)
 
+    messages.success(request, "Data saved successfully!")
     return redirect("index")
 
 
-class QuizDeleteView(DeleteView):
+class QuizDeleteView(LoginRequiredMixin, DeleteView):
     # specify the model you want to use
     model = Quiz
 
@@ -178,4 +210,16 @@ class QuizDeleteView(DeleteView):
     success_url = reverse_lazy("index")
 
     template_name = "quiz/confirm_delete.html"
+
+    def get_queryset(self):
+        """
+        Limit the queryset to quizzes owned by the logged-in user.
+        """
+        return Quiz.objects.filter(user=self.request.user)
+
+    def handle_no_permission(self):
+        """
+        Handle unauthorized access attempts.
+        """
+        raise Http404("You do not have permission to delete this quiz.")
 
