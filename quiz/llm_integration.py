@@ -8,7 +8,7 @@ from django.conf import settings
 from pydantic import BaseModel
 
 from langchain_openai import ChatOpenAI
-from langchain_community.document_loaders import TextLoader
+from langchain_community.document_loaders import TextLoader, PyPDFLoader
 from langchain.output_parsers import PydanticOutputParser
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 
@@ -125,4 +125,34 @@ def execute_llm_prompt_langchain(number_of_questions: int, quiz_name: str, file)
     return output.model_dump()
 
 def execute_llm_prompt_pdf(number_of_questions: int, quiz_name: str, file):
-    return json.loads(example_response_json)
+
+    model = ChatOpenAI(model="gpt-4o-mini", api_key=settings.OPEN_API_KEY)
+
+    with NamedTemporaryFile() as tempfile:
+
+        tempfile.write(file.read())
+        tempfile.seek(0)
+
+        loader = PyPDFLoader(tempfile.name)
+        pages = []
+
+        for page in loader.lazy_load():
+            pages.append(page.page_content)
+
+    file_content = " ".join(pages)
+    # Set up a parser + inject instructions into the prompt template.
+    parser = PydanticOutputParser(pydantic_object=MultiChoiceQuizFormat)
+
+    prompt = PromptTemplate(
+        template=test_input,
+        input_variables=["number_of_questions", "response_json", "quiz_name", "file_content"],
+    )
+
+    # And a query intended to prompt a language model to populate the data structure.
+    chain = prompt | model | parser
+    output = chain.invoke({"number_of_questions": number_of_questions, "response_json": example_response_json,
+                           "quiz_name": quiz_name, "file_content": file_content})
+
+    return output.model_dump()
+
+
