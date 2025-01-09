@@ -7,29 +7,19 @@
     <div id="chatbot">
     <div class="wrapper">
         <div class="title">Simple Chatbot</div>
-        <div class="box">
-            <div class="item">
-                <div class="icon">
-                    <i class="fa fa-user"></i>
-                </div>
-                <div class="msg">
-                    <p>Hello everyone, How are you?</p>
-                </div>
-            </div>
-            <br clear="both">
-            <div class="item right">
-                <div class="msg">
-                    <p>Nice</p>
-                </div>
-            </div>
+        <div id="box_div" class="box">
+            
         </div>
         
         <div class="typing-area">
             <div class="input-field">
-                <input type="text" placeholder="Type your message" required>
-                <button>Send</button>
+                <input id="user_input" type="text" placeholder="Type your message" required>
+                <button id="submit_chat_btn">Send</button>
             </div>
         </div>
     </div>
     </div>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'chatbot_stuff.js' %}"></script>
 {% endblock %}
