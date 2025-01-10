@@ -140,6 +140,7 @@ LOGIN_REDIRECT_URL = "/"  # new
 LOGOUT_REDIRECT_URL = "/"  # new
 
 OPEN_API_KEY = env('OPEN_API_KEY')
+PINECONE_API_KEY = env('PINECONE_API_KEY')
 
 LOGGING = {
     "version": 1,

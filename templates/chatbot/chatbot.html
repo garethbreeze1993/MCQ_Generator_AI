@@ -14,11 +14,12 @@
         <div class="typing-area">
             <div class="input-field">
                 <input id="user_input" type="text" placeholder="Type your message" required>
-                <button id="submit_chat_btn">Send</button>
+                <button id="submit_chat_btn" data-url="{% url 'answer_user_input' %}" data-csrf-token="{{ csrf_token }}">Send</button>
             </div>
         </div>
     </div>
     </div>
+    {% csrf_token %}
 {% endblock %}
 {% block scripts %}
 <script src="{% static 'chatbot_stuff.js' %}"></script>

@@ -43,9 +43,31 @@ submitBtn.addEventListener(
         // Create and append items to the body
         boxDiv.appendChild(createItem(userInput.value, false, true));
         boxDiv.appendChild(createLineBreak());
+
+
+        const url = submitBtn.getAttribute("data-url")
+        const csrfToken = submitBtn.getAttribute('data-csrf-token');
+        const userMsg = userInput.value;
         userInput.value = "";
-        boxDiv.appendChild(createItem('THis is an automated Response', true));
-        boxDiv.appendChild(createLineBreak());
+
+        fetch(url, {
+            headers: {'X-CSRFToken': csrfToken},
+        method: 'POST',
+        body: JSON.stringify({user_msg: userMsg})
+    })
+        .then(response => {
+        // Parse the JSON from the response
+        return response.json();
+        })
+        .then(data => {
+            const message = data['message']
+            boxDiv.appendChild(createItem(message, true));
+            boxDiv.appendChild(createLineBreak());
+        })
+        .catch(err => {
+            console.log(err)
+        })
+
     }
 )
 
