@@ -1,0 +1,16 @@
+<<!-- templates/home.html -->
+{% extends "home.html" %}
+{% block app_content %}
+    <a href={% url 'chat_index' %}>Chats</a>
+<a href={% url 'new_chat' %}>New Chat</a>
+<h4>This is your saved chats</h4>
+    <ul>
+    {% for chats in chats %}
+        <li>{{ chat.title }}</li>
+    {% empty %}
+        <li>You have no Chats yet.</li>
+    {% endfor %}
+    </ul>
+{% endblock %}
+
+{#<a href={% url 'q_detail' chat.pk %}>#}

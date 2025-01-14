@@ -4,11 +4,22 @@
     <link rel="stylesheet" href="{% static 'chatbot_style.css' %}">
 {% endblock %}
 {% block app_content %}
+    <form id="save_form" method="POST" action="{% url 'save_chat' %}" data-csrf-token="{{ csrf_token }}">
+    {% csrf_token %}
+    <!-- Quiz Name -->
+    <div class="form-group">
+        <label for="id_chat_name">{{ form.name_title.label }}</label>
+        <input type="text" id="id_chat_name" name="{{ form.name_title.name }}" value="{{ form.name_title.value }}" maxlength="128" class="form-control">
+        {% for error in form.name_title.errors %}
+            <span class="text-danger">{{ error }}</span>
+        {% endfor %}
+    </div>
+    <button id="save_chat_btn" type="submit">Save Chat</button>
+    </form>
     <div id="chatbot">
     <div class="wrapper">
         <div class="title">Simple Chatbot</div>
         <div id="box_div" class="box">
-            
         </div>
         
         <div class="typing-area">
