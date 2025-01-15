@@ -5,12 +5,11 @@
 <a href={% url 'new_chat' %}>New Chat</a>
 <h4>This is your saved chats</h4>
     <ul>
-    {% for chats in chats %}
-        <li>{{ chat.title }}</li>
+    {% for chat in chats %}
+        <li><a href={% url 'chat_detail' chat.pk %}>{{ chat.title }}</a></li>
     {% empty %}
         <li>You have no Chats yet.</li>
     {% endfor %}
     </ul>
 {% endblock %}
 
-{#<a href={% url 'q_detail' chat.pk %}>#}
