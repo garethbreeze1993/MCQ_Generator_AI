@@ -4,8 +4,10 @@
 <html>
 
 <head>
+{% load static %}
   <meta charset="utf-8">
   <title>{% block title %}Django Auth Tutorial{% endblock %}</title>
+<link rel="stylesheet" href="{% static 'main.css' %}">
 {% block stylesheets %} {% endblock %}
 </head>
 

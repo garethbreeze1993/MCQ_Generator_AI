@@ -1,0 +1,133 @@
+.container {
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+ nav {
+            background: #333;
+            color: #fff;
+            padding: 1rem;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            justify-content: center;
+        }
+
+        nav ul li {
+            margin: 0 15px;
+        }
+
+        nav ul li a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        nav ul li a:hover {
+            text-decoration: underline;
+        }
+
+        .main_a_tag {
+            display: inline-block;
+            margin: 0.5rem 0;
+            color: #007BFF;
+            text-decoration: none;
+        }
+
+        .main_a_tag:hover {
+            text-decoration: underline;
+        }
+
+        .ul_style{
+            list-style: none;
+            justify-content: center;
+        }
+
+        .btn_copy{
+            background-color: #2f07f7;
+            color: white;
+            padding: 14px 25px;
+            margin-left: 300px;
+            margin-right: 300px;
+            text-align: center;
+            text-decoration: none;
+            display: flex;
+            justify-content: center;
+        }
+
+        .btn_copy_login{
+            background-color: #2f07f7;
+            color: white;
+            padding: 14px 25px;
+            margin-top: 10px;
+            margin-left: 350px;
+            margin-right: 300px;
+            text-align: center;
+            text-decoration: none;
+            display: flex;
+            justify-content: center;
+        }
+
+        .btn_del{
+        background-color: #f7020b;
+        color: white;
+        padding: 14px 25px;
+        margin-left: 300px;
+        margin-right: 300px;
+        text-align: center;
+        text-decoration: none;
+        display: flex;
+        justify-content: center;
+}
+
+ol li{
+    justify-content: center;
+}
+
+.form-group {
+        margin-bottom: 1.5rem;
+        text-align: left;
+        }
+
+.form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+}
+
+.form-group input {
+            width: 100%;
+            padding: 0.5rem;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+}
+
+.form-group input[type="file"] {
+            padding: 0;
+}
+
+.form-group_signup {
+        margin-bottom: 1.5rem;
+        text-align: left;
+        }
+
+.form-group_signup label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+}
+
+.form-group_signup input {
+            width: 100%;
+            padding: 0.5rem;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+}

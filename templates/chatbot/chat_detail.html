@@ -4,14 +4,18 @@
 {% block app_content %}
     <!-- quiz_detail.html -->
 <h1>Chat: {{ chat.title }}</h1>
-    <a href={% url 'delete_chat' chat.pk %}>Delete Chat</a>
+    <a class="btn_del" href={% url 'delete_chat' chat.pk %}>Delete Chat</a>
 
 <form method="POST">
     {% csrf_token %}
 
     {% for data in llm_messages %}
         <div class="question">
-            <h2>{{ data.order_number }}: {{ data.message_text }}</h2>
+        {% if data.llm_response %}
+            <p>AI: {{ data.message_text }}</p>
+        {% else %}
+            <p>{{ chat.user }}: {{ data.message_text }}</p>
+        {% endif %}
 
         </div>
     {% endfor %}

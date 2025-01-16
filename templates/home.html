@@ -1,15 +1,22 @@
-<<!-- templates/home.html -->
+<!-- templates/home.html -->
 {% extends "base.html" %}
 
 {% block title %}MCQ Generator{% endblock %}
 
 {% block content %}
+    
 {% if user.is_authenticated %}
-Hi {{ user.username }}!
-    <form action="{% url 'logout' %}" method="post">
-  {% csrf_token %}
-  <button type="submit">Log Out</button>
-</form>
+    <nav>
+        <ul>
+            <li>Hi {{ user.username }}!</li>
+            <li><a href="/">Home</a></li>
+            <li><a href="{% url 'index' %}">Quizzes</a></li>
+            <li><a href="{% url 'chat_index' %}">Chatbot</a></li>
+            <li><form action="{% url 'logout' %}" method="post">
+                {% csrf_token %}
+                <button type="submit">Log Out</button></form></li>
+        </ul>
+    </nav>
     {% if messages %}
     <ul class="messages">
         {% for message in messages %}
@@ -17,14 +24,18 @@ Hi {{ user.username }}!
         {% endfor %}
     </ul>
 {% endif %}
-   
-    <a href={% url 'home' %}>Home</a>
+   <div class="container">
     
     {% block app_content %}
     {% endblock %}
-    
+   </div>
 {% else %}
-<p>You are not logged in</p>
-<a href="{% url 'login' %}">Log In</a>
+    <nav>
+    <ul>
+<li>You are not logged in</li>
+        <li><a href="{% url 'login' %}">Log In</a></li>
+        <li><a href="{% url 'signup' %}">Sign Up</a></li>
+    </ul>
+    </nav>
 {% endif %}
 {% endblock %}

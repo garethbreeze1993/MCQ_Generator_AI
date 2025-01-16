@@ -9,16 +9,14 @@
     <form id="quiz_form" method="POST" enctype="multipart/form-data" data-url="{% url 'generate_quiz' %}" data-csrf-token="{{ csrf_token }}">
     {% csrf_token %}
     
-    <!-- Quiz Name -->
     <div class="form-group">
         <label for="id_quiz_name">{{ form.quiz_name.label }}</label>
-        <input type="text" id="id_quiz_name" name="{{ form.quiz_name.name }}" value="{{ form.quiz_name.value }}" maxlength="128" class="form-control">
+        <input type="text" id="id_quiz_name" name="{{ form.quiz_name.name }}" placeholder="Quiz Name" maxlength="128" class="form-control">
         {% for error in form.quiz_name.errors %}
             <span class="text-danger">{{ error }}</span>
         {% endfor %}
     </div>
-    
-    <!-- File Upload -->
+
     <div class="form-group">
         <label for="id_file">{{ form.file.label }}</label>
         <input type="file" id="id_file" name="{{ form.file.name }}" class="form-control-file">
@@ -35,17 +33,8 @@
             <span class="text-danger">{{ error }}</span>
         {% endfor %}
     </div>
-
-    <!-- Temperature -->
-{#    <div class="form-group">#}
-{#        <label for="id_temperature">{{ form.temperature.label }}</label>#}
-{#        <input type="number" id="id_temperature" name="{{ form.temperature.name }}" value="{{ form.temperature.value }}" min="0" max="2" class="form-control">#}
-{#        {% for error in form.temperature.errors %}#}
-{#            <span class="text-danger">{{ error }}</span>#}
-{#        {% endfor %}#}
-{#    </div>#}
-
-    <button id="generate_quiz_btn" type="submit">Generate Quiz</button>
+    
+    <button class="btn_copy" id="generate_quiz_btn" type="submit">Generate Quiz</button>
     </form>
     <br/>
     <br/>

@@ -6,12 +6,22 @@
     box-sizing: border-box;
 }
 
+.btn_copy_chatbot{
+            background-color: #2f07f7;
+            color: white;
+            padding: 14px 25px;
+            margin-left: 300px;
+            margin-right: 300px;
+            text-align: center;
+            text-decoration: none;
+            display: flex;
+            justify-content: center;
+        }
+
 #chatbot {
-    font-family: 'Poppins', sans-serif;
+    margin-top: 1rem;
     display: flex;
     justify-content: center;
-    align-items: center;
-    min-height: 100vh;
 }
 
 .wrapper {
@@ -31,7 +41,6 @@
     border: 1px solid #efefef;
     padding: 10px 15px;
     min-height: 400px;
-    max-height: 800px;
 }
 
 .wrapper .box .item {
@@ -54,7 +63,7 @@
     background: #007bff;
     color: white;
     border-radius: 10px;
-    width: 150px;
+    width: 450px;
     margin-left: 10px;
 }
 

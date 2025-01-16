@@ -1,12 +1,11 @@
 <<!-- templates/home.html -->
 {% extends "home.html" %}
 {% block app_content %}
-    <a href={% url 'chat_index' %}>Chats</a>
-<a href={% url 'new_chat' %}>New Chat</a>
+<a class="btn_copy" href={% url 'new_chat' %}>New Chat</a>
 <h4>This is your saved chats</h4>
-    <ul>
+    <ul class="ul_style">
     {% for chat in chats %}
-        <li><a href={% url 'chat_detail' chat.pk %}>{{ chat.title }}</a></li>
+        <li><a class="main_a_tag" href={% url 'chat_detail' chat.pk %}>{{ chat.title }}</a></li>
     {% empty %}
         <li>You have no Chats yet.</li>
     {% endfor %}

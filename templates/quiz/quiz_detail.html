@@ -1,11 +1,10 @@
-<<!-- templates/home.html -->
+<!-- templates/home.html -->
 {% extends "home.html" %}
 
 {% block app_content %}
-<h4>This is where the quiz questions goes</h4>
     <!-- quiz_detail.html -->
-<h1>{{ quiz.title }}</h1>
-    <a href={% url 'delete_quiz' quiz.pk %}>Delete Quiz</a>
+<h1>Quiz: {{ quiz.title }}</h1>
+    <a class="btn_del" href={% url 'delete_quiz' quiz.pk %}>Delete Quiz</a>
 
 <form method="POST">
     {% csrf_token %}
@@ -14,7 +13,7 @@
         <div class="question">
             <h2>Question {{ data.question.question_number }}: {{ data.question.question_text }}</h2>
             
-            <ul>
+            <ol type="A">
                 {% for answer in data.answers %}
                     <li>
                         <label>
@@ -23,11 +22,11 @@
                         </label>
                     </li>
                 {% endfor %}
-            </ul>
+            </ol>
         </div>
     {% endfor %}
     
-    <button type="submit">Submit Quiz</button>
+    <button class="btn_copy" type="submit">Submit Quiz</button>
 </form>
 {% endblock %}
 

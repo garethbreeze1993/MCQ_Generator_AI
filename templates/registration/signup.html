@@ -3,10 +3,20 @@
 {% block title %}Sign Up{% endblock %}
 
 {% block content %}
+    <nav>
+    <ul>
+        <li><a href="{% url 'login' %}">Log In</a></li>
+        <li><a href="{% url 'signup' %}">Sign Up</a></li>
+    </ul>
+    </nav>
+    <div class="container">
+    <div class="form-group_signup">
 <h2>Sign up</h2>
 <form method="post">
   {% csrf_token %}
   {{ form }}
-  <button type="submit">Sign Up</button>
+  <button type="submit" class="btn_copy_login">Sign Up</button>
 </form>
+    </div>
+    </div>
 {% endblock %}

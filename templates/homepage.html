@@ -1,11 +1,16 @@
-<<!-- templates/home.html -->
+<!-- templates/home.html -->
 {% extends "home.html" %}
 
 {% block app_content %}
 <h4>HOMEPAGE</h4>
-    <p>Quizzes section</p>
-    <a href="{% url 'index' %}">See your available quizzes or create a new one?</a>
     
-    <p>Chatbot Section</p>
-    <a href="{% url 'chat_index' %}">See your available chats or create a new one?</a>
+            <section>
+                <p>Quizzes Section</p>
+                <a class="main_a_tag" href="{% url 'index' %}">See your available quizzes or create a new one?</a>
+            </section>
+
+            <section>
+                <p>Chatbot Section</p>
+                <a class="main_a_tag" href="{% url 'chat_index' %}">See your available chats or create a new one?</a>
+            </section>
 {% endblock %}

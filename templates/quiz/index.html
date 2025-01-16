@@ -1,12 +1,11 @@
 <<!-- templates/home.html -->
 {% extends "home.html" %}
 {% block app_content %}
-    <a href={% url 'index' %}>Quizzes</a>
-<a href={% url 'create_quiz' %}>Create Quiz</a>
-<h4>This is where the quiz questions goes</h4>
-    <ul>
+<a class="btn_copy" href={% url 'create_quiz' %}>Create Quiz</a>
+<h4>Your quizzes</h4>
+    <ul class="ul_style">
     {% for quiz in quizzes %}
-        <li><a href={% url 'q_detail' quiz.pk %}>{{ quiz.title }}</a></li>
+        <li><a class="main_a_tag" href={% url 'q_detail' quiz.pk %}>{{ quiz.title }}</a></li>
     {% empty %}
         <li>You have no quizzes.</li>
     {% endfor %}

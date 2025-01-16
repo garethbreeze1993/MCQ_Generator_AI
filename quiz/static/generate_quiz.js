@@ -78,7 +78,8 @@ const generateQuiz = (event) => {
             question_input.value = questionData.question;
 
             // Create the answer list
-            const answerList = document.createElement('ul');
+            const answerList = document.createElement('ol');
+            answerList.type = "A";
 
             // Loop through the answers and create list items with radio buttons
             questionData.answers.forEach((answer, index) => {
@@ -90,9 +91,8 @@ const generateQuiz = (event) => {
             // Create a label for the answer
             const label = document.createElement('label');
 
-            // Create the radio button
-            const input = document.createElement('input');
-            input.type = 'radio';
+            // Create the p
+            const input = document.createElement('p');
             input.name = `question_${questionNumber}`;
             input.value = index + 1;
 
@@ -132,6 +132,7 @@ const generateQuiz = (event) => {
         saveQuizLink.setAttribute("id", "saveQuizBtn");
         saveQuizLink.type = "submit";
         saveQuizLink.textContent = "Save Quiz";
+        saveQuizLink.className = "btn_copy";
         quizContainer.appendChild(saveQuizLink);
         quizContainer.appendChild(wholeQuiz);
         quizContainer.appendChild(quiz_name);
