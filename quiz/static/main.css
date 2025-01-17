@@ -131,3 +131,27 @@ ol li{
             border: 1px solid #ccc;
             border-radius: 4px;
 }
+
+.messages {
+	border-radius: 10px;
+	box-shadow: 3px 3px 4px 0px rgba(50, 50, 50, 0.75);
+	color: white;
+	margin-bottom: 20px;
+	margin-left: auto;
+	margin-right: auto;
+	padding-bottom: 5px;
+	padding-top: 5px;
+	text-align: center;
+	width: 80%;
+}
+
+/*
+ * Give the various message types the correct colors
+ */
+.success {
+	background-color: green;
+}
+
+.error {
+	background-color: red;
+}

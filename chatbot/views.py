@@ -82,9 +82,16 @@ def save_chat(request):
     logger.debug(request.session["lyl_messages"])
     logger.debug(request.session["number_chats"])
 
+    submitted_form = ChatTitleForm(request.POST)
+
+    if not submitted_form.is_valid():
+        logger.error(submitted_form.errors)
+        messages.error(request, 'Please enter a Chat Name')
+        return JsonResponse({"message": "Please enter a Chat Name"})
+
     new_chat = Chat()
     new_chat.user = request.user
-    new_chat.title = request.POST['name_title']
+    new_chat.title = submitted_form.cleaned_data['name_title']
 
     try:
         new_chat.save()
@@ -122,7 +129,7 @@ def save_chat(request):
             return JsonResponse({"error": "Error when saving Messaged"}, status=500)
 
     messages.success(request, "Data saved successfully!")
-    return redirect("index")
+    return redirect("chat_index")
 
 @login_required(login_url='login')
 def get_chat_data(request, pk):
