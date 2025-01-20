@@ -5,6 +5,7 @@ from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.urls import reverse
 from langchain.chains.question_answering.stuff_prompt import messages
+from torch.distributed.elastic.multiprocessing.redirects import redirect
 
 from chatbot.models import Chat, Message
 from chatbot.forms import ChatTitleForm
@@ -143,9 +144,9 @@ class ChatTestCase(TestCase):
         llm_message = "Hello Human multiple"
         llm_response = MockLLMContent(llm_message)
         mock_chatbot_response.return_value = llm_response
-        message_session = [{f"user_msg": "user_msg_1", f"llm_msg_1": "llm_msg_1", "chat_number": 1},
-                           {f"user_msg": "user_msg_2", f"llm_msg_2": "llm_msg_2", "chat_number": 2},
-                           {f"user_msg": "user_msg_3", f"llm_msg_3": "llm_msg_3", "chat_number": 3}]
+        message_session = [{f"user_msg": "user_msg_1", f"llm_msg": "llm_msg_1", "chat_number": 1},
+                           {f"user_msg": "user_msg_2", f"llm_msg": "llm_msg_2", "chat_number": 2},
+                           {f"user_msg": "user_msg_3", f"llm_msg": "llm_msg_3", "chat_number": 3}]
         session = self.authenticated_client.session
         session['number_chats'] = 4
         session['lyl_messages'] = message_session
@@ -216,8 +217,102 @@ class ChatTestCase(TestCase):
 
             count += 1
 
+    def test_save_form_not_valid(self):
+        url = reverse("save_chat")
+        new_chat_title = 'Save Chat Test dhbbbbbbsnjssssssssssssssss22888888888888888888dbbdbdbdbdbdbbdbdbhddhwkebwefbwedkbfhewfbefbwekfbfhjfbkrwfdkdjkdjdjjdjdjddjd'
+
+        message_session = [{f"user_msg": "user_msg_1", f"llm_msg": "llm_msg_1", "chat_number": 1},
+                           {f"user_msg": "user_msg_2", f"llm_msg": "llm_msg_2", "chat_number": 2},
+                           {f"user_msg": "user_msg_3", f"llm_msg": "llm_msg_3", "chat_number": 3}]
+        session = self.authenticated_client.session
+        session['number_chats'] = 4
+        session['lyl_messages'] = message_session
+        session.save()
+        response = self.authenticated_client.post(url, data={"name_title": new_chat_title})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(json.loads(str(response.content, 'utf-8'))['error'], "Please fix chat name")
 
 
+    def test_save_form_error_save_chat(self):
+        url = reverse("save_chat")
+        new_chat_title = 'test chat'
+
+        message_session = [{f"user_msg": "user_msg_1", f"llm_msg": "llm_msg_1", "chat_number": 1},
+                           {f"user_msg": "user_msg_2", f"llm_msg": "llm_msg_2", "chat_number": 2},
+                           {f"user_msg": "user_msg_3", f"llm_msg": "llm_msg_3", "chat_number": 3}]
+        session = self.authenticated_client.session
+        session['number_chats'] = 4
+        session['lyl_messages'] = message_session
+        session.save()
+        response = self.authenticated_client.post(url, data={"name_title": new_chat_title})
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(json.loads(str(response.content, 'utf-8'))['error'], "Error when saving chat")
+        number_chat_queryset = Chat.objects.filter(title=ChatTestCase.test_chat.title, user=ChatTestCase.test_user)
+        self.assertTrue(number_chat_queryset.exists())
+        self.assertEqual(number_chat_queryset.count(), 1)
+
+    def test_save_unauthenticated_user(self):
+        url = reverse("save_chat")
+        new_chat_title = 'test chat'
+
+        message_session = [{f"user_msg": "user_msg_1", f"llm_msg": "llm_msg_1", "chat_number": 1},
+                           {f"user_msg": "user_msg_2", f"llm_msg": "llm_msg_2", "chat_number": 2},
+                           {f"user_msg": "user_msg_3", f"llm_msg": "llm_msg_3", "chat_number": 3}]
+        session = self.unauthenticated_client.session
+        session['number_chats'] = 4
+        session['lyl_messages'] = message_session
+        session.save()
+        response = self.unauthenticated_client.post(url, data={"name_title": new_chat_title})
+        self.assertEqual(response.status_code, 302)
+
+    def test_delete_success(self):
+
+        before_chats = Chat.objects.filter(user=ChatTestCase.test_user)
+        before_count = before_chats.count()
+        self.assertEqual(before_count, 1)
+        before_chat = before_chats.first()
+        pk = before_chat.pk
+        before_messages = Message.objects.filter(chat=before_chat)
+        before_messages_2 = Message.objects.filter(chat_id=pk)
+        self.assertEqual(before_messages.count(), 8)
+        self.assertEqual(before_messages_2.count(), 8)
+
+        url = reverse("delete_chat", args=[pk])
+
+        first_response = self.authenticated_client.get(url)
+        self.assertEqual(first_response.status_code, 200)
+        self.assertTemplateUsed(first_response, "chatbot/confirm_chat_delete.html")
+
+        second_response = self.authenticated_client.post(url)
+        self.assertEqual(second_response.status_code, 302)
+        redirect_url = reverse("chat_index")
+        self.assertEqual(second_response.url, redirect_url)
+
+        after_delete_chat = Chat.objects.filter(pk=pk)
+        self.assertFalse(after_delete_chat.exists())
+
+        after_delete_messages = Message.objects.filter(chat_id=pk)
+        self.assertFalse(after_delete_messages.exists())
+
+    def test_delete_different_user(self):
+
+        self.random_client = Client()
+        self.random_client.login(username='randomuser', password='random')
+        pk = ChatTestCase.test_chat.pk
 
 
+        url = reverse("delete_chat", args=[pk])
+
+        first_response = self.random_client.get(url)
+        self.assertEqual(first_response.status_code, 404)
+
+    def test_delete_unauthenticated_user(self):
+
+        pk = ChatTestCase.test_chat.pk
+
+
+        url = reverse("delete_chat", args=[pk])
+
+        first_response = self.unauthenticated_client.get(url)
+        self.assertEqual(first_response.status_code, 404)
 

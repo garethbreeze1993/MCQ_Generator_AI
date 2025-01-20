@@ -86,8 +86,8 @@ def save_chat(request):
 
     if not submitted_form.is_valid():
         logger.error(submitted_form.errors)
-        messages.error(request, 'Please enter a Chat Name')
-        return JsonResponse({"message": "Please enter a Chat Name"})
+        messages.error(request, 'Please fix chat name')
+        return JsonResponse({"error": "Please fix chat name"}, status=400)
 
     new_chat = Chat()
     new_chat.user = request.user
@@ -120,6 +120,7 @@ def save_chat(request):
         new_llm_message.llm_response = True
 
         try:
+            # Unable to test as unsure how I will hit this in a unit test
             new_user_message.save()
             new_llm_message.save()
 
