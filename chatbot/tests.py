@@ -165,6 +165,25 @@ class ChatTestCase(TestCase):
         mock_chatbot_response.assert_called_once_with(user_message)
 
     @patch("chatbot.views.chatbot_response")
+    def test_answer_input_chatbot_response_raises_exception(self, mock_chatbot_response):
+        url = reverse("answer_user_input")
+        user_message = "Hello World multiple"
+        mock_chatbot_response.side_effect = Exception
+        message_session = [{f"user_msg": "user_msg_1", f"llm_msg": "llm_msg_1", "chat_number": 1},
+                           {f"user_msg": "user_msg_2", f"llm_msg": "llm_msg_2", "chat_number": 2},
+                           {f"user_msg": "user_msg_3", f"llm_msg": "llm_msg_3", "chat_number": 3}]
+        session = self.authenticated_client.session
+        session['number_chats'] = 4
+        session['lyl_messages'] = message_session
+        session.save()
+        response = self.authenticated_client.post(url, data={"user_msg": user_message}, content_type="application/json")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(str(response.content, 'utf-8')),
+                         {"message": "Problem with chatbot response please contact the System Administrator"})
+
+        mock_chatbot_response.assert_called_once_with(user_message)
+
+    @patch("chatbot.views.chatbot_response")
     def test_answer_input_unauthorised(self, mock_chatbot_response):
         url = reverse("answer_user_input")
         user_message = "Hello World"

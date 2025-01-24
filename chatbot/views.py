@@ -53,7 +53,11 @@ def answer_user_input(request):
 
     user_message = post_data['user_msg']
 
-    chatbot_res = chatbot_response(user_message)
+    try:
+        chatbot_res = chatbot_response(user_message)
+    except Exception as e:
+        logger.error(e)
+        return JsonResponse({"message": "Problem with chatbot response please contact the System Administrator"})
 
     chatbot_res_content = chatbot_res.content
 

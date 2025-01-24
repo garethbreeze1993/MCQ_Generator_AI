@@ -33,14 +33,16 @@ def chatbot_response(user_msg: str):
 
     retriever = vector_store.as_retriever(
         search_type="similarity_score_threshold",
-        search_kwargs={"k": 1, "score_threshold": 0.5},
+        search_kwargs={"k": 3, "score_threshold": 0.5},
     )
 
     doc_content = retriever.invoke(user_msg)
 
+    page_content_str = ".".join([doc.page_content for doc in doc_content])
+
     # And a query intended to prompt a language model to populate the data structure.
     chain = prompt | model
 
-    output = chain.invoke({"content": doc_content[0].page_content, "question": user_msg})
+    output = chain.invoke({"content": page_content_str, "question": user_msg})
 
     return output
