@@ -4,8 +4,6 @@ from unittest.mock import patch
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.urls import reverse
-from langchain.chains.question_answering.stuff_prompt import messages
-from torch.distributed.elastic.multiprocessing.redirects import redirect
 
 from chatbot.models import Chat, Message
 from chatbot.forms import ChatTitleForm
