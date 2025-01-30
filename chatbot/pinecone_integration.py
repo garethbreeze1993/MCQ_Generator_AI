@@ -1,10 +1,8 @@
 import os
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from pinecone import Pinecone, ServerlessSpec
 from langchain_openai import OpenAIEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader
-from langchain_unstructured import UnstructuredLoader
 
 
 
