@@ -32,7 +32,7 @@ SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True if env('DJANGO_ENV') == 'DEVELOPMENT' else False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['3.83.177.29']
 
 
 # Application definition
