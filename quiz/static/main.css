@@ -155,3 +155,17 @@ ol li{
 .error {
 	background-color: red;
 }
+
+.libcontainer{
+    display: flex;
+    gap: 10px; /* Adjust spacing between buttons */
+}
+
+.btn_copy_lib{
+    background-color: #2f07f7;
+    text-decoration: none;
+    padding: 10px 15px;
+    color: white;
+    border-radius: 5px;
+    display: inline-block;
+}

@@ -12,6 +12,7 @@
             <li><a href="/">Home</a></li>
             <li><a href="{% url 'index' %}">Quizzes</a></li>
             <li><a href="{% url 'chat_index' %}">Chatbot</a></li>
+            <li><a href="{% url 'library_index' %}">Library</a></li>
             <li><form action="{% url 'logout' %}" method="post">
                 {% csrf_token %}
                 <button type="submit">Log Out</button></form></li>

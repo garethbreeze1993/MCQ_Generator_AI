@@ -1,0 +1,31 @@
+<<!-- templates/home.html -->
+{% extends "home.html" %}
+{% load static %}
+{% block stylesheets %}
+    <link rel="stylesheet" href="{% static 'quiz_style.css' %}">
+{% endblock %}
+{% block app_content %}
+
+    <form id="quiz_form" method="POST">
+    {% csrf_token %}
+
+    <div class="form-group">
+        <label for="id_file">{{ form.file.label }}</label>
+        <input type="file" id="id_file" name="{{ form.file.name }}" class="form-control-file">
+        {% for error in form.file.errors %}
+            <span class="text-danger">{{ error }}</span>
+        {% endfor %}
+    </div>
+
+    <button class="btn_copy" type="submit">Generate Quiz</button>
+    </form>
+    <br/>
+    <br/>
+
+{% endblock %}
+{% block scripts %}
+
+{% endblock %}
+
+
+

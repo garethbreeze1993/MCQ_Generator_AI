@@ -1,0 +1,33 @@
+<<!-- templates/home.html -->
+{% extends "home.html" %}
+
+{% block app_content %}
+    <!-- quiz_detail.html -->
+<h1>Chat: {{ chat.title }}</h1>
+    <a class="btn_del" href={% url 'delete_chat' chat.pk %}>Delete Chat</a>
+
+<form method="POST">
+    {% csrf_token %}
+
+    {% for data in llm_messages %}
+        <div class="question">
+        {% if data.llm_response %}
+            <p>AI: {{ data.message_text }}</p>
+        {% else %}
+            <p>{{ chat.user }}: {{ data.message_text }}</p>
+        {% endif %}
+
+        </div>
+    {% endfor %}
+
+{#    <button type="submit">Submit Quiz</button>#}
+</form>
+{% endblock %}
+
+
+
+
+
+
+
+
