@@ -2,6 +2,10 @@ from django.db import models
 
 from django.contrib.auth.models import User
 
+def user_directory_path(instance, filename):
+    # file will be uploaded to MEDIA_ROOT / user_<id>/<filename>
+    return 'user_{0}/{1}'.format(instance.user.id, filename)
+
 class LibChat(models.Model):
     title = models.CharField(max_length=128)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -20,5 +24,5 @@ class LibMessage(models.Model):
 
 class LibDocuments(models.Model):
     name = models.CharField()
-    saved_name = models.CharField()
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    upload_file = models.FileField(upload_to=user_directory_path)

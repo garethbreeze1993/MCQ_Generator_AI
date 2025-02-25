@@ -8,7 +8,7 @@
 <h4>This is your uploaded documents</h4>
     <ul class="ul_style">
     {% for doc in documents %}
-        <li><a class="main_a_tag" href="">{{ doc.title }}</a></li>
+        <li><a class="main_a_tag" href="">{{ doc.name }}</a></li>
     {% empty %}
         <li>You have no Documents uploaded yet.</li>
     {% endfor %}

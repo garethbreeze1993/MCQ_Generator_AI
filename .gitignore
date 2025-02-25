@@ -140,3 +140,5 @@ GitHub.sublime-settings
 
 *.service
 *.socket
+
+local_storage/

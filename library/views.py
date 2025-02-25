@@ -1,10 +1,12 @@
 import logging
 import json
+import os
 
 from django.contrib import messages
 from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.conf import settings
 from django.http import JsonResponse, Http404
 from django.views.generic.list import ListView
 from django.views.generic.edit import DeleteView
@@ -14,6 +16,7 @@ from django.urls import reverse_lazy
 from chatbot.forms import ChatTitleForm
 from library.forms import LibDocForm
 from library.models import LibChat, LibMessage, LibDocuments
+from library.helpers import upload_document_to_library
 
 
 logger = logging.getLogger("django_mcq")
@@ -75,8 +78,33 @@ def lib_chatbot_new_chat(request):
 @login_required(login_url='login')
 def upload_document(request):
     form = None
-    if request.method == 'GET':
-        form = LibDocForm()
+
+    if request.method == "POST":
+
+        logger.info('hitsa')
+
+        form = LibDocForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            lib_doc = form.save(commit=False)  # Don't save yet
+            lib_doc.user = request.user  # Assign the logged-in user
+            lib_doc.name = lib_doc.upload_file.name  # Save original filename
+            lib_doc.save()  # Now save the model
+
+            additional_file_args = 'user_{0}/{1}'.format(request.user.id, lib_doc.name)
+
+            file_path = os.path.join(settings.MEDIA_ROOT, additional_file_args)
+
+            upload_document_to_library(file_path=file_path)
+            return redirect("lib_doc_list")  # Redirect after saving
+
+        else:
+            logger.error(form.errors)
+            return render(request, "library/lib_upload_doc.html", {"form": form})
+
     else:
-        return HttpResponseForbidden('DONT HIT THIS')
-    return render(request, "library/lib_upload_doc.html", {"form": form})
+        # Request method is GET
+        form = LibDocForm()
+
+        return render(request, "library/lib_upload_doc.html", {"form": form})
+

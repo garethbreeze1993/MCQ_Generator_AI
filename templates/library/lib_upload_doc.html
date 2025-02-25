@@ -6,18 +6,18 @@
 {% endblock %}
 {% block app_content %}
 
-    <form id="quiz_form" method="POST">
+    <form id="quiz_form" method="POST" enctype="multipart/form-data">
     {% csrf_token %}
 
     <div class="form-group">
-        <label for="id_file">{{ form.file.label }}</label>
-        <input type="file" id="id_file" name="{{ form.file.name }}" class="form-control-file">
-        {% for error in form.file.errors %}
+        <label for="id_file">{{ form.upload_file.label }}</label>
+        <input type="file" id="id_file" name="{{ form.upload_file.name }}" class="form-control-file">
+        {% for error in form.upload_file.errors %}
             <span class="text-danger">{{ error }}</span>
         {% endfor %}
     </div>
 
-    <button class="btn_copy" type="submit">Generate Quiz</button>
+    <button class="btn_copy" type="submit">Upload Document</button>
     </form>
     <br/>
     <br/>
