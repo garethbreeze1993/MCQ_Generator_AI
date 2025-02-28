@@ -3,6 +3,7 @@ import json
 import os
 
 from django.contrib import messages
+from django.db import transaction
 from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -15,7 +16,7 @@ from django.urls import reverse_lazy
 
 from chatbot.forms import ChatTitleForm
 from library.forms import LibDocForm
-from library.models import LibChat, LibMessage, LibDocuments
+from library.models import LibChat, LibMessage, LibDocuments, LibDocumentEmbeddings
 from library.helpers import upload_document_to_library
 
 
@@ -86,16 +87,54 @@ def upload_document(request):
         form = LibDocForm(request.POST, request.FILES)
 
         if form.is_valid():
+
+            latest_doc = LibDocuments.objects.filter(user=request.user).order_by('-datetime_added').first()
+
+            if latest_doc:
+                latest_embedding = LibDocumentEmbeddings.objects.filter(document=latest_doc).first()
+                last_id = latest_embedding.end_id
+            else:
+                last_id = 0
+
             lib_doc = form.save(commit=False)  # Don't save yet
             lib_doc.user = request.user  # Assign the logged-in user
             lib_doc.name = lib_doc.upload_file.name  # Save original filename
-            lib_doc.save()  # Now save the model
 
-            additional_file_args = 'user_{0}/{1}'.format(request.user.id, lib_doc.name)
+            unique_user = f'user_{request.user.id}'
 
-            file_path = os.path.join(settings.MEDIA_ROOT, additional_file_args)
+            new_id = last_id + 1
 
-            upload_document_to_library(file_path=file_path)
+            try:
+                with transaction.atomic():
+                    lib_doc.save()
+            except Exception as e:
+                logger.error(e)
+                messages.error(request, f"An error occurred: {str(e)}")
+                return render(request, "library/lib_upload_doc.html", {"form": form})
+
+            file_path = os.path.join(settings.MEDIA_ROOT, lib_doc.upload_file.name)
+
+            try:
+                end_id = upload_document_to_library(file_path=file_path, unique_user=unique_user, new_id=new_id)
+
+            except Exception as e:
+                logger.error(e)
+                messages.error(request, f"An error occurred: {str(e)}")
+                return render(request, "library/lib_upload_doc.html", {"form": form})
+
+            lib_doc_embeddings = LibDocumentEmbeddings()
+            lib_doc_embeddings.document = lib_doc
+            lib_doc_embeddings.start_id = new_id
+            lib_doc_embeddings.end_id = end_id
+
+            try:
+                lib_doc_embeddings.save()
+            except Exception as e:
+                logger.error(e)
+                messages.error(request, f"An error occurred: {str(e)}")
+                return render(request, "library/lib_upload_doc.html", {"form": form})
+
+            messages.success(request, "Data saved successfully!")
             return redirect("lib_doc_list")  # Redirect after saving
 
         else:

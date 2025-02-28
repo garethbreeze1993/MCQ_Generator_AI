@@ -1,20 +1,58 @@
+import os
 import logging
 from django.conf import settings
+
+import chromadb
+import chromadb.utils.embedding_functions as embedding_functions
+
+
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from langchain_community.document_loaders import PyPDFLoader
+from sqlalchemy.testing.suite.test_reflection import metadata
 
 logger = logging.getLogger("django_mcq")
 
 
-def upload_document_to_library(file_path):
-    # embeddings = OpenAIEmbeddings(model="text-embedding-3-large", api_key=settings.OPEN_API_KEY)
+def upload_document_to_library(file_path, unique_user, new_id):
+    chroma_path = os.path.join(settings.BASE_DIR, "chroma_db_storage")
+    chroma_client = chromadb.PersistentClient(path=chroma_path)
+
+    openai_ef = embedding_functions.OpenAIEmbeddingFunction(
+        api_key=settings.OPEN_API_KEY,
+        model_name="text-embedding-3-large"
+    )
+
+
+    collection = chroma_client.get_or_create_collection(name=unique_user, embedding_function=openai_ef)
 
     loader = PyPDFLoader(file_path)
     docs = loader.load()
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=20)
     all_splits = text_splitter.split_documents(docs)
 
+    id_list = []
+    page_content_list = []
+    metadata_list = []
+
     for split in all_splits:
-        logger.debug(split)
+        id_list.append(f'id{new_id}')
+        page_content_list.append(split.page_content)
+        metadata_list.append(split.metadata)
+        new_id += 1
+
+
+    collection.upsert(
+        ids=id_list,
+        metadatas=metadata_list,
+        documents=page_content_list,
+    )
+
+    logger.info(collection.count())
+
+    logger.info(len(id_list))
+
+    logger.info(id_list[-1])
+
+    return collection.count()
