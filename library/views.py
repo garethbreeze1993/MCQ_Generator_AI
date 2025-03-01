@@ -11,13 +11,14 @@ from django.conf import settings
 from django.http import JsonResponse, Http404
 from django.views.generic.list import ListView
 from django.views.generic.edit import DeleteView
+from django.views.generic.detail import DetailView
 from django.http import HttpResponseForbidden
 from django.urls import reverse_lazy
 
 from chatbot.forms import ChatTitleForm
 from library.forms import LibDocForm
 from library.models import LibChat, LibMessage, LibDocuments, LibDocumentEmbeddings
-from library.helpers import upload_document_to_library
+from library.helpers import upload_document_to_library, delete_document_from_library
 
 
 logger = logging.getLogger("django_mcq")
@@ -146,4 +147,68 @@ def upload_document(request):
         form = LibDocForm()
 
         return render(request, "library/lib_upload_doc.html", {"form": form})
+
+
+class LibDocumentsDetailView(LoginRequiredMixin, DetailView):
+    model = LibDocuments
+    template_name = "library/libdocuments_detail.html"
+    context_object_name = "document"
+
+    def get_queryset(self):
+        # Ensure users can only access their own documents
+        return LibDocuments.objects.filter(user=self.request.user)
+
+    def get_object(self, queryset=None):
+        queryset = self.get_queryset()
+        return get_object_or_404(queryset, pk=self.kwargs.get("pk"))
+
+class LibraryDocumentsDeleteView(LoginRequiredMixin, DeleteView):
+    # specify the model you want to use
+    model = LibDocuments
+    # can specify success url
+    # url to redirect after successfully
+    # deleting object
+    success_url = reverse_lazy("lib_doc_list")
+    template_name = "library/confirm_doc_delete.html"
+
+    def get_queryset(self):
+        """
+        Limit the queryset to quizzes owned by the logged-in user.
+        """
+        return LibDocuments.objects.filter(user=self.request.user)
+
+    def handle_no_permission(self):
+        """
+        Handle unauthorized access attempts.
+        """
+        raise Http404("You do not have permission to delete this quiz.")
+
+    def form_valid(self, form):
+        """
+        Custom logic before deletion.
+        """
+
+        logger.info('inside form valid method')
+
+        instance = self.get_object()
+
+        number_documents = LibDocuments.objects.filter(user=self.request.user).count()
+
+        unique_user = f'user_{self.request.user.id}'
+
+        delete_document_from_library(
+            number_of_documents=number_documents, document_pk=instance.pk, unique_user=unique_user)
+
+
+        # Perform custom logic, e.g., delete the uploaded file from storage
+        if instance.upload_file:
+            file_path = instance.upload_file.path
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
+        # Perform any other necessary cleanup
+
+        # Proceed with the standard delete operation
+        return super().form_valid(form)
+
 
