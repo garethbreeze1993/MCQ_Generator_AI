@@ -4,7 +4,7 @@
     <link rel="stylesheet" href="{% static 'chatbot_style.css' %}">
 {% endblock %}
 {% block app_content %}
-    <form id="save_form" method="POST" action="{% url 'save_chat' %}" data-csrf-token="{{ csrf_token }}">
+    <form id="save_form" method="POST" action="{% url 'save_lib_chat' %}" data-csrf-token="{{ csrf_token }}">
     {% csrf_token %}
     <!-- Quiz Name -->
     <div class="form-group">
@@ -18,14 +18,14 @@
     </form>
     <div id="chatbot">
     <div class="wrapper">
-        <div class="title">LYL Chatbot</div>
+        <div class="title">Library Chatbot</div>
         <div id="box_div" class="box">
         </div>
 
         <div class="typing-area">
             <div class="input-field">
                 <input id="user_input" type="text" placeholder="Type your message" required>
-                <button id="submit_chat_btn" data-url="{% url 'answer_user_input' %}" data-csrf-token="{{ csrf_token }}">Send</button>
+                <button id="submit_chat_btn" data-url="{% url 'answer_user_input_lib' %}" data-csrf-token="{{ csrf_token }}">Send</button>
             </div>
         </div>
     </div>

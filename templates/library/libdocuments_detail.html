@@ -5,7 +5,7 @@
     <!-- quiz_detail.html -->
 <h1>Document: {{ document.name }}</h1>
     <a class="btn_del" href="{% url 'delete_document' document.pk %}">Delete Document</a>
-    <a class="btn_copy_lib" href="">Download Document</a>
+    <a class="btn_copy_lib" href="{% url 'download_file' document.pk %}">Download Document</a>
 
     <h4>Uploaded on {{ document.datetime_added }}</h4>
 {% endblock %}

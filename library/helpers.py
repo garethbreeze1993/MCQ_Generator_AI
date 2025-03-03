@@ -95,6 +95,9 @@ def delete_document_from_library(number_of_documents: int, document_pk: int, uni
 
     return
 
+def answer_user_message_library(user_message):
+    return f'AI MESSAGE answering {user_message}'
+
 
 
 
