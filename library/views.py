@@ -15,8 +15,7 @@ from django.views.generic.detail import DetailView
 from django.http import HttpResponseForbidden
 from django.urls import reverse_lazy
 
-from chatbot.forms import ChatTitleForm
-from library.forms import LibDocForm
+from library.forms import LibDocForm, LibChatTitleForm
 from library.models import LibChat, LibMessage, LibDocuments, LibDocumentEmbeddings
 from library.helpers import upload_document_to_library, delete_document_from_library, answer_user_message_library
 
@@ -75,7 +74,9 @@ class LibDocListView(LoginRequiredMixin, ListView):
 def lib_chatbot_new_chat(request):
     request.session['library_messages'] = []
     request.session['number_lib_chats'] = 1
-    return render(request=request, template_name='library/lib_chatbot.html', context={'form': ChatTitleForm()})
+    form = LibChatTitleForm(user=request.user)
+    context_dict = {'form': form}
+    return render(request=request, template_name='library/lib_chatbot.html', context=context_dict)
 
 @login_required(login_url='login')
 def upload_document(request):
@@ -225,9 +226,23 @@ def answer_user_input_library(request):
 
 
     user_message = post_data['user_msg']
+    unique_user = f'user_{request.user.id}'
+
+    user_docs = post_data['user_docs']
+
+    filter_docs = []
+
+    for doc in user_docs:
+        lib_doc = LibDocuments.objects.filter(user=request.user, pk=doc).first()
+        file_path = os.path.join(settings.MEDIA_ROOT, lib_doc.upload_file.name)
+        filter_docs.append(file_path)
+
+    logger.info('hhhh')
+    logger.info(filter_docs)
+
 
     try:
-        chatbot_res = answer_user_message_library(user_message)
+        chatbot_res = answer_user_message_library(user_message, unique_user, filter_docs)
     except Exception as e:
         logger.error(e)
         return JsonResponse({"message": "Problem with chatbot response please contact the System Administrator"})
@@ -262,7 +277,7 @@ def save_lib_chat(request):
     logger.debug(request.session["library_messages"])
     logger.debug(request.session["number_lib_chats"])
 
-    submitted_form = ChatTitleForm(request.POST)
+    submitted_form = LibChatTitleForm(request.POST)
 
     if not submitted_form.is_valid():
         logger.error(submitted_form.errors)

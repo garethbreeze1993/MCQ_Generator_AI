@@ -8,11 +8,7 @@
     {% csrf_token %}
     <!-- Quiz Name -->
     <div class="form-group">
-        <label for="id_chat_name">{{ form.name_title.label }}</label>
-        <input type="text" id="id_chat_name" name="{{ form.name_title.name }}" placeholder="Chat Name" maxlength="128" class="form-control" required>
-        {% for error in form.name_title.errors %}
-            <span class="text-danger">{{ error }}</span>
-        {% endfor %}
+        {{ form.as_p }}
     <button class="btn_copy_chatbot" id="save_chat_btn" type="submit">Save Chat</button>
     </div>
     </form>

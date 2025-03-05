@@ -95,7 +95,32 @@ def delete_document_from_library(number_of_documents: int, document_pk: int, uni
 
     return
 
-def answer_user_message_library(user_message):
+def answer_user_message_library(user_message, unique_user, filter_docs):
+    chroma_path = os.path.join(settings.BASE_DIR, "chroma_db_storage")
+    chroma_client = chromadb.PersistentClient(path=chroma_path)
+    openai_ef = embedding_functions.OpenAIEmbeddingFunction(
+        api_key=settings.OPEN_API_KEY,
+        model_name="text-embedding-3-large"
+    )
+    collection = chroma_client.get_or_create_collection(name=unique_user, embedding_function=openai_ef)
+
+    query_params = {
+        "query_texts": [user_message],
+        "n_results": 10
+    }
+
+
+    if filter_docs:
+
+        query_params["where"] = {
+            "source": {"$in": filter_docs}
+        }
+
+    results = collection.query(**query_params)
+
+
+    logger.info('results messy')
+    logger.info(results)
     return f'AI MESSAGE answering {user_message}'
 
 

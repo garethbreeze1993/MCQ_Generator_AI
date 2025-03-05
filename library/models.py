@@ -28,6 +28,9 @@ class LibDocuments(models.Model):
     upload_file = models.FileField(upload_to=user_directory_path)
     datetime_added = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return self.name
+
 class LibDocumentEmbeddings(models.Model):
     document = models.ForeignKey(LibDocuments, on_delete=models.CASCADE)
     start_id = models.IntegerField()
