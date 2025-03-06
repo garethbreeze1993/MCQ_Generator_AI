@@ -40,24 +40,32 @@ const submitBtn = document.getElementById("submit_chat_btn");
 submitBtn.addEventListener(
     "click", () => {
 
-
-        const documentSelect = document.getElementById("id_document")
-        let selectedValues = Array.from(documentSelect.selectedOptions).map(option => option.value);
         const userInput = document.getElementById("user_input");
         // Create and append items to the body
         boxDiv.appendChild(createItem(userInput.value, false, true));
         boxDiv.appendChild(createLineBreak());
 
-
-        const url = submitBtn.getAttribute("data-url")
         const csrfToken = submitBtn.getAttribute('data-csrf-token');
         const userMsg = userInput.value;
+        const url = submitBtn.getAttribute("data-url")
+
+        let bodyObject;
+
+        if (url === "/library/answer_user"){
+            const documentSelect = document.getElementById("id_document")
+            let selectedValues = Array.from(documentSelect.selectedOptions).map(
+                option => option.value);
+            bodyObject = {user_msg: userMsg, user_docs: selectedValues}
+        } else{
+            bodyObject = {user_msg: userMsg}
+        }
+
         userInput.value = "";
 
         fetch(url, {
             headers: {'X-CSRFToken': csrfToken},
-        method: 'POST',
-        body: JSON.stringify({user_msg: userMsg, user_docs: selectedValues})
+            method: 'POST',
+            body: JSON.stringify(bodyObject)
     })
         .then(response => {
         // Parse the JSON from the response
