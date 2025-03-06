@@ -4,7 +4,7 @@
 {% block app_content %}
     <!-- quiz_detail.html -->
 <h1>Chat: {{ chat.title }}</h1>
-    <a class="btn_del" href={% url 'delete_chat' chat.pk %}>Delete Chat</a>
+    <a class="btn_del" href={% url 'delete_lib_chat' chat.pk %}>Delete Chat</a>
 
 <form method="POST">
     {% csrf_token %}

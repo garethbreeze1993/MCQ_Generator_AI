@@ -14,5 +14,6 @@ urlpatterns = [
     path("answer_user", views.answer_user_input_library, name="answer_user_input_lib"),
     path("save_chat", views.save_lib_chat, name="save_lib_chat"),
     path("download_file/<int:pk>", views.download_file, name="download_file"),
+    path('delete/<int:pk>', views.LibChatDeleteView.as_view(), name='delete_lib_chat')
 
 ]

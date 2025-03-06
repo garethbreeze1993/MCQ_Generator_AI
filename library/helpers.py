@@ -4,14 +4,39 @@ from django.conf import settings
 
 import chromadb
 import chromadb.utils.embedding_functions as embedding_functions
-
+from langchain_openai import ChatOpenAI
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_core.prompts import PromptTemplate
 from langchain_community.document_loaders import PyPDFLoader
 
 from library.models import LibDocumentEmbeddings
 
 logger = logging.getLogger("django_mcq")
+
+
+library_chat_prompt = """
+"You are an AI assistant designed to provide accurate and helpful responses. 
+Below is a user query along with relevant retrieved context from a knowledge base. 
+Your task is to answer the query as accurately as possible using only the provided context. 
+If the context does not contain the required information, 
+indicate that you don't have enough data instead of making up an answer.
+
+User Query:
+
+{user_query}
+
+Retrieved Context:
+
+{retrieved_context}
+
+Instructions:
+
+    Use the retrieved context to answer the query.
+    Do not add information that is not present in the context.
+    If the context is insufficient, state: 'I don’t have enough information to answer this query based on the provided data.'
+    Keep the response concise and informative."
+"""
 
 
 def upload_document_to_library(file_path, unique_user, new_id):
@@ -106,7 +131,7 @@ def answer_user_message_library(user_message, unique_user, filter_docs):
 
     query_params = {
         "query_texts": [user_message],
-        "n_results": 10
+        "n_results": 3
     }
 
 
@@ -118,10 +143,26 @@ def answer_user_message_library(user_message, unique_user, filter_docs):
 
     results = collection.query(**query_params)
 
+    page_content_str = ""
 
-    logger.info('results messy')
-    logger.info(results)
-    return f'AI MESSAGE answering {user_message}'
+    for document in results["documents"]:
+        for doc in document:
+            page_content_str += doc
+
+    model = ChatOpenAI(model="gpt-4o-mini", api_key=settings.OPEN_API_KEY)
+
+    prompt = PromptTemplate(
+        template=library_chat_prompt,
+        input_variables=["retrieved_context", "user_query"],
+    )
+
+    # And a query intended to prompt a language model to populate the data structure.
+    chain = prompt | model
+
+    output = chain.invoke({"retrieved_context": page_content_str, "user_query": user_message})
+
+    return output
+
 
 
 

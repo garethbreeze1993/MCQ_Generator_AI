@@ -75,5 +75,17 @@ submitBtn.addEventListener(
     }
 )
 
+document.getElementById("id_name_title").addEventListener("input", function() {
+    const button = document.querySelector(".btn_copy_chatbot");
+    if (this.checkValidity()) {
+        button.style.opacity = "1";
+        button.style.pointerEvents = "auto";
+    } else {
+        button.style.opacity = "0";
+        button.style.pointerEvents = "none";
+    }
+});
+
+
 
 
