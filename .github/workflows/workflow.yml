@@ -17,7 +17,7 @@ jobs:
       DATABASE_PORT: ${{ secrets.DATABASE_PORT }}
       DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
       DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
-      DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
+      DATABASE_USER: ${{ secrets.DATABASE_USERNAME }}
       OPEN_API_KEY: ${{ secrets.OPEN_API_KEY }}
       PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
       SECRET_KEY: ${{ secrets.SECRET_KEY }}
