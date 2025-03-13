@@ -1,3 +1,4 @@
+from io import BytesIO
 import json
 import os
 from unittest.mock import patch
@@ -487,3 +488,105 @@ class LibraryTestCase(TestCase):
 
         # Should return 404
         self.assertEqual(response.status_code, 404)
+
+    def test_upload_document_get_request_authorised(self):
+
+        url = reverse("upload_document")
+        # Simulate a GET request to the view
+        response = self.authenticated_client.get(url)
+
+        # Check that the response status code is 200 (OK)
+        self.assertEqual(response.status_code, 200)
+
+        # Check that the correct template is used
+        self.assertTemplateUsed(response, "library/lib_upload_doc.html")
+
+        # Check that the form is in the context
+        self.assertIn("form", response.context)
+        self.assertIsInstance(response.context["form"], LibDocForm)
+
+    def test_upload_document_get_request_unauthorised(self):
+        url = reverse("upload_document")
+        # Simulate a GET request to the view
+        response = self.unauthenticated_client.get(url)
+        self.assertEqual(response.status_code, 302)
+
+    def test_upload_document_post_request_form_not_valid(self):
+        url = reverse("upload_document")
+        file_content = b"Hello, this is a test file"
+        mock_file = BytesIO(file_content)
+        mock_file.name = "test_file.txt"
+        post_data = {"upload_file": mock_file}
+        response = self.authenticated_client.post(url, post_data)
+        self.assertEqual(response.status_code, 200)
+        # Check that the correct template is used
+        self.assertTemplateUsed(response, "library/lib_upload_doc.html")
+        # Check that the form is in the context
+        self.assertIn("form", response.context)
+        self.assertIsInstance(response.context["form"], LibDocForm)
+        self.assertTrue(response.context['form'].errors)
+
+    @patch("library.views.upload_document_to_library")
+    def test_upload_document_chroma_upload_fail(self, chroma_upload_func):
+        url = reverse("upload_document")
+        pdf_content_test = (b'%PDF-1.4\n1 0 obj\n<</Type/Catalog/Pages 2 0 R>>\nendobj\n2 0 '
+                         b'obj\n<</Type/Pages/Kids[3 0 R]/Count 1>>\nendobj\n3 0 obj\n'
+                         b'<</Type/Page/MediaBox[0 0 595 842]/Parent 2 0 R/Resources<<>>>>\nendobj\nxref'
+                         b'\n0 4\n0000000000 65535 f\n0000000010 00000 n\n0000000053 00000 n\n0000000102 00000 n'
+                         b'\ntrailer\n<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF')
+
+        mock_file_name = 'test_document_inside_test.pdf'
+
+        mock_pdf = SimpleUploadedFile(
+            name=mock_file_name,
+            content=pdf_content_test,
+            content_type='application/pdf'
+        )
+        chroma_upload_func.side_effect = Exception
+        post_data = {"upload_file": mock_pdf}
+        response = self.authenticated_client.post(url, post_data)
+        self.assertEqual(response.status_code, 200)
+        # Check that the correct template is used
+        self.assertTemplateUsed(response, "library/lib_upload_doc.html")
+        # Check that the form is in the context
+        self.assertIn("form", response.context)
+        self.assertIsInstance(response.context["form"], LibDocForm)
+        self.assertFalse(response.context['form'].errors)
+
+        documents = LibDocuments.objects.filter(name=mock_file_name, user=LibraryTestCase.test_user)
+        self.assertFalse(documents.exists())
+        self.assertEqual(documents.count(), 0)
+
+    @patch("library.views.upload_document_to_library")
+    def test_upload_document_lib_embeddings_fail_random_user_no_embeddings(self, chroma_upload_func):
+        url = reverse("upload_document")
+        pdf_content_test = (b'%PDF-1.4\n1 0 obj\n<</Type/Catalog/Pages 2 0 R>>\nendobj\n2 0 '
+                            b'obj\n<</Type/Pages/Kids[3 0 R]/Count 1>>\nendobj\n3 0 obj\n'
+                            b'<</Type/Page/MediaBox[0 0 595 842]/Parent 2 0 R/Resources<<>>>>\nendobj\nxref'
+                            b'\n0 4\n0000000000 65535 f\n0000000010 00000 n\n0000000053 00000 n\n0000000102 00000 n'
+                            b'\ntrailer\n<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF')
+
+        mock_file_name = 'test_document_inside_test.pdf'
+
+        mock_pdf = SimpleUploadedFile(
+            name=mock_file_name,
+            content=pdf_content_test,
+            content_type='application/pdf'
+        )
+        chroma_upload_func.return_value = None
+        post_data = {"upload_file": mock_pdf}
+        response = self.random_client.post(url, post_data)
+        self.assertEqual(response.status_code, 200)
+        # Check that the correct template is used
+        self.assertTemplateUsed(response, "library/lib_upload_doc.html")
+        # Check that the form is in the context
+        self.assertIn("form", response.context)
+        self.assertIsInstance(response.context["form"], LibDocForm)
+        self.assertFalse(response.context['form'].errors)
+
+        # Check if lib doc saves shows that we reached this code block
+        documents = LibDocuments.objects.filter(name=mock_file_name, user=LibraryTestCase.random_user)
+        self.assertFalse(documents.exists())
+        self.assertEqual(documents.count(), 0)
+
+

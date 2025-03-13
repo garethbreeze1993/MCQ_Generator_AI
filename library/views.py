@@ -120,6 +120,7 @@ def upload_document(request):
                 end_id = upload_document_to_library(file_path=file_path, unique_user=unique_user, new_id=new_id)
 
             except Exception as e:
+                transaction.set_rollback(True)  # This forces the entire transaction to roll back
                 logger.error(e)
                 messages.error(request, f"An error occurred: {str(e)}")
                 return render(request, "library/lib_upload_doc.html", {"form": form})
