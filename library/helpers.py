@@ -11,6 +11,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_community.document_loaders import PyPDFLoader
 
 from library.models import LibDocumentEmbeddings
+from library.utils import get_final_id, get_lists_for_chroma_upsert, get_list_of_ids_for_chroma_deletion
 
 logger = logging.getLogger("django_mcq")
 
@@ -56,16 +57,7 @@ def upload_document_to_library(file_path, unique_user, new_id):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=20)
     all_splits = text_splitter.split_documents(docs)
 
-    id_list = []
-    page_content_list = []
-    metadata_list = []
-
-    for split in all_splits:
-        id_list.append(f'id{new_id}')
-        page_content_list.append(split.page_content)
-        metadata_list.append(split.metadata)
-        new_id += 1
-
+    id_list, page_content_list, metadata_list = get_lists_for_chroma_upsert(all_splits=all_splits, new_id=new_id)
 
     collection.upsert(
         ids=id_list,
@@ -76,19 +68,11 @@ def upload_document_to_library(file_path, unique_user, new_id):
     logger.info(collection.count())
 
     logger.info(id_list[-1])
-    final_id = get_final_id(id_list[-1])
+    final_id = get_final_id(num=id_list[-1])
 
     return final_id
 
-def get_final_id(num: str):
-    n = num.split('id')
-    try:
-        x = n[-1]
-        fin = int(x)
-    except Exception:
-        return False
-    else:
-        return fin
+
 
 def delete_document_from_library(number_of_documents: int, document_pk: int, unique_user: str):
 
@@ -105,7 +89,7 @@ def delete_document_from_library(number_of_documents: int, document_pk: int, uni
 
     end_id = lib_doc.end_id
 
-    list_of_ids = [f"id{i}" for i in range(start_id, end_id + 1)]
+    list_of_ids = get_list_of_ids_for_chroma_deletion(start_id=start_id, end_id=end_id)
 
     openai_ef = embedding_functions.OpenAIEmbeddingFunction(
         api_key=settings.OPEN_API_KEY,

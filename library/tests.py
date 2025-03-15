@@ -1,6 +1,8 @@
 from io import BytesIO
 import json
 import os
+import shutil
+from unittest import TestCase as unittestTestCase
 from unittest.mock import patch
 
 from django.conf import settings
@@ -11,8 +13,16 @@ from django.urls import reverse
 
 from library.models import LibChat, LibMessage, LibDocuments, LibDocumentEmbeddings
 from library.forms import LibDocForm, LibChatTitleForm, SaveLibChatTitleForm
+from library.utils import get_final_id, get_list_of_ids_for_chroma_deletion, get_lists_for_chroma_upsert
 from chatbot.tests import MockLLMContent
 # from chatbot.forms import ChatTitleForm
+
+class MockLangchainDocument:
+
+    def __init__(self, page_content, metadata):
+        self.page_content = page_content
+        self.metadata = metadata
+
 
 
 class LibraryTestCase(TestCase):
@@ -74,6 +84,21 @@ class LibraryTestCase(TestCase):
                                                                         end_id=271)
         cls.document_embedding_1 = LibDocumentEmbeddings.objects.create(document=cls.document_2, start_id=272,
                                                                        end_id=341)
+
+    @classmethod
+    def tearDownClass(cls):
+        unique_test_user = f'user_{LibraryTestCase.test_user.id}'
+        file_path = os.path.join(settings.MEDIA_ROOT, unique_test_user)
+
+        random_test_user = f'user_{LibraryTestCase.random_user.id}'
+        file_path_two = os.path.join(settings.MEDIA_ROOT, random_test_user)
+
+        # Clean up after all tests have run
+        shutil.rmtree(file_path)
+        shutil.rmtree(file_path_two)
+
+        # Call the parent's tearDownClass
+        super().tearDownClass()
 
     def setUp(self):
         # Every test needs a client.
@@ -589,4 +614,236 @@ class LibraryTestCase(TestCase):
         self.assertFalse(documents.exists())
         self.assertEqual(documents.count(), 0)
 
+    @patch("library.views.upload_document_to_library")
+    def test_upload_document_lib_embeddings_fail_random_user_save_successful_first_doc(self, chroma_upload_func):
+        url = reverse("upload_document")
+        pdf_content_test = (b'%PDF-1.4\n1 0 obj\n<</Type/Catalog/Pages 2 0 R>>\nendobj\n2 0 '
+                            b'obj\n<</Type/Pages/Kids[3 0 R]/Count 1>>\nendobj\n3 0 obj\n'
+                            b'<</Type/Page/MediaBox[0 0 595 842]/Parent 2 0 R/Resources<<>>>>\nendobj\nxref'
+                            b'\n0 4\n0000000000 65535 f\n0000000010 00000 n\n0000000053 00000 n\n0000000102 00000 n'
+                            b'\ntrailer\n<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF')
+
+        mock_file_name = 'test_document_inside_test.pdf'
+
+        mock_pdf = SimpleUploadedFile(
+            name=mock_file_name,
+            content=pdf_content_test,
+            content_type='application/pdf'
+        )
+        end_id = 5
+        chroma_upload_func.return_value = end_id
+        post_data = {"upload_file": mock_pdf}
+        response = self.random_client.post(url, post_data)
+
+        self.assertEqual(response.status_code, 302)
+        # Test redirect
+        self.assertRedirects(response, reverse('lib_doc_list'))
+
+
+        # Check if lib doc saves shows that we reached this code block
+        documents = LibDocuments.objects.filter(name=mock_file_name, user=LibraryTestCase.random_user)
+        self.assertTrue(documents.exists())
+        self.assertEqual(documents.count(), 1)
+        document = documents.first()
+
+        file_path = os.path.join(settings.MEDIA_ROOT, document.upload_file.name)
+        unique_user = f'user_{LibraryTestCase.random_user.id}'
+
+        chroma_upload_func.assert_called_once_with(file_path=file_path, unique_user=unique_user, new_id=1)
+
+        embeddings = LibDocumentEmbeddings.objects.get(document=document)
+        self.assertEqual(embeddings.start_id, 1)
+        self.assertEqual(embeddings.end_id, end_id)
+
+    @patch("library.views.upload_document_to_library")
+    def test_upload_document_lib_embeddings_fail_test_user_save_successful_not_first_doc(self, chroma_upload_func):
+        url = reverse("upload_document")
+        pdf_content_test = (b'%PDF-1.4\n1 0 obj\n<</Type/Catalog/Pages 2 0 R>>\nendobj\n2 0 '
+                            b'obj\n<</Type/Pages/Kids[3 0 R]/Count 1>>\nendobj\n3 0 obj\n'
+                            b'<</Type/Page/MediaBox[0 0 595 842]/Parent 2 0 R/Resources<<>>>>\nendobj\nxref'
+                            b'\n0 4\n0000000000 65535 f\n0000000010 00000 n\n0000000053 00000 n\n0000000102 00000 n'
+                            b'\ntrailer\n<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF')
+
+        mock_file_name = 'test_document_inside_test.pdf'
+
+        mock_pdf = SimpleUploadedFile(
+            name=mock_file_name,
+            content=pdf_content_test,
+            content_type='application/pdf'
+        )
+        expected_start_id = 342
+        expected_end_id = 350
+        chroma_upload_func.return_value = expected_end_id
+        post_data = {"upload_file": mock_pdf}
+        response = self.authenticated_client.post(url, post_data)
+
+        self.assertEqual(response.status_code, 302)
+        # Test redirect
+        self.assertRedirects(response, reverse('lib_doc_list'))
+
+        # Check if lib doc saves shows that we reached this code block
+        documents = LibDocuments.objects.filter(name=mock_file_name, user=LibraryTestCase.test_user)
+        self.assertTrue(documents.exists())
+        self.assertEqual(documents.count(), 1)
+        document = documents.first()
+
+        file_path = os.path.join(settings.MEDIA_ROOT, document.upload_file.name)
+        unique_user = f'user_{LibraryTestCase.test_user.id}'
+
+        chroma_upload_func.assert_called_once_with(file_path=file_path, unique_user=unique_user,
+                                                   new_id=expected_start_id)
+
+        embeddings = LibDocumentEmbeddings.objects.get(document=document)
+        self.assertEqual(embeddings.start_id, expected_start_id)
+        self.assertEqual(embeddings.end_id, expected_end_id)
+
+    @patch("library.views.delete_document_from_library")
+    def test_lib_doc_delete_different_user(self, delete_chroma_func):
+
+        pk = LibraryTestCase.document_2.pk
+
+        url = reverse("delete_document", args=[pk])
+
+        first_response = self.random_client.get(url)
+        self.assertEqual(first_response.status_code, 404)
+        delete_chroma_func.assert_not_called()
+
+    @patch("library.views.delete_document_from_library")
+    def test_lib_doc_delete_unauthenticated_user(self, delete_chroma_func):
+
+        pk = LibraryTestCase.document_2.pk
+
+        url = reverse("delete_document", args=[pk])
+
+        first_response = self.unauthenticated_client.get(url)
+        self.assertEqual(first_response.status_code, 404)
+        delete_chroma_func.assert_not_called()
+
+    @patch("library.views.delete_document_from_library")
+    def test_lib_doc_delete_success(self, delete_chroma_func):
+
+        before_docs = LibDocuments.objects.filter(user=LibraryTestCase.test_user)
+        before_count = before_docs.count()
+        self.assertEqual(before_count, 2)
+
+        before_embeddings = LibDocumentEmbeddings.objects.filter(document__in=before_docs)
+        self.assertEqual(before_embeddings.count(), 2)
+
+        pk = LibraryTestCase.document_2.pk
+
+        document_delete = LibDocuments.objects.filter(pk=pk)
+        specific_document = document_delete.first()
+        file_path = specific_document.upload_file.path
+        document_embedding = LibDocumentEmbeddings.objects.filter(document=specific_document)
+        unique_user = f'user_{LibraryTestCase.test_user.id}'
+
+        self.assertTrue(document_delete.exists())
+        self.assertTrue(document_embedding.exists())
+        self.assertEqual(document_delete.count(), 1)
+        self.assertEqual(document_embedding.count(), 1)
+
+
+        url = reverse("delete_document", args=[pk])
+
+        first_response = self.authenticated_client.get(url)
+        self.assertEqual(first_response.status_code, 200)
+        self.assertTemplateUsed(first_response, "library/confirm_doc_delete.html")
+
+        second_response = self.authenticated_client.post(url)
+        self.assertEqual(second_response.status_code, 302)
+        redirect_url = reverse("lib_doc_list")
+        self.assertEqual(second_response.url, redirect_url)
+
+        document_delete = LibDocuments.objects.filter(pk=pk)
+        document_embedding = LibDocumentEmbeddings.objects.filter(document=specific_document)
+        self.assertFalse(document_delete.exists())
+        self.assertFalse(document_embedding.exists())
+        self.assertFalse(os.path.exists(file_path))
+        delete_chroma_func.assert_called_once_with(number_of_documents=before_count,
+                                                   document_pk=pk, unique_user=unique_user)
+
+
+class UtilsTestCase(unittestTestCase):
+
+    def test_get_final_id_success(self):
+        output = get_final_id(num="id456")
+        self.assertEqual(output, 456)
+
+    def test_get_final_id_exception(self):
+        output = get_final_id(num="idnonumber")
+        self.assertFalse(output)
+
+    def test_get_lists_for_chroma_upsert_new_id_one(self):
+
+        document_1 = MockLangchainDocument(page_content="document_1", metadata="document_1")
+        document_2 = MockLangchainDocument(page_content="document_2", metadata="document_2")
+        document_3 = MockLangchainDocument(page_content="document_3", metadata="document_3")
+
+        all_splits = [document_1, document_2, document_3]
+        new_id = 1
+
+        expected_id_list, expected_page_content_list, expected_metadata_list = get_lists_for_chroma_upsert(
+            all_splits=all_splits, new_id=new_id)
+
+        actual_id_list = []
+        actual_page_content_list = []
+        actual_metadata_list = []
+
+        for split in all_splits:
+            actual_id_list.append(f'id{new_id}')
+            actual_page_content_list.append(split.page_content)
+            actual_metadata_list.append(split.metadata)
+            new_id += 1
+
+        self.assertEqual(actual_id_list, expected_id_list)
+        self.assertEqual(actual_page_content_list, expected_page_content_list)
+        self.assertEqual(actual_metadata_list, expected_metadata_list)
+
+    def test_get_lists_for_chroma_upsert_new_id_not_one(self):
+
+        document_1 = MockLangchainDocument(page_content="document_1", metadata="document_1")
+        document_2 = MockLangchainDocument(page_content="document_2", metadata="document_2")
+        document_3 = MockLangchainDocument(page_content="document_3", metadata="document_3")
+
+        all_splits = [document_1, document_2, document_3]
+        new_id = 456
+
+        expected_id_list, expected_page_content_list, expected_metadata_list = get_lists_for_chroma_upsert(
+            all_splits=all_splits, new_id=new_id)
+
+        actual_id_list = []
+        actual_page_content_list = []
+        actual_metadata_list = []
+
+        for split in all_splits:
+            actual_id_list.append(f'id{new_id}')
+            actual_page_content_list.append(split.page_content)
+            actual_metadata_list.append(split.metadata)
+            new_id += 1
+
+        self.assertEqual(actual_id_list, expected_id_list)
+        self.assertEqual(actual_page_content_list, expected_page_content_list)
+        self.assertEqual(actual_metadata_list, expected_metadata_list)
+
+    def test_get_list_ids_chroma_deletion_start_id_one(self):
+
+        start_id = 1
+        end_id = 25
+
+        expected_list_of_ids = get_list_of_ids_for_chroma_deletion(start_id=start_id, end_id=end_id)
+
+        actual_list_of_ids = [f"id{i}" for i in range(start_id, end_id + 1)]
+
+        self.assertEqual(actual_list_of_ids, expected_list_of_ids)
+
+    def test_get_list_ids_chroma_deletion_start_id_not_one(self):
+
+        start_id = 50
+        end_id = 76
+
+        expected_list_of_ids = get_list_of_ids_for_chroma_deletion(start_id=start_id, end_id=end_id)
+
+        actual_list_of_ids = [f"id{i}" for i in range(start_id, end_id + 1)]
+
+        self.assertEqual(actual_list_of_ids, expected_list_of_ids)
 
