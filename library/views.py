@@ -19,6 +19,8 @@ from library.forms import LibDocForm, LibChatTitleForm, SaveLibChatTitleForm
 from library.models import LibChat, LibMessage, LibDocuments, LibDocumentEmbeddings
 from library.helpers import upload_document_to_library, delete_document_from_library, answer_user_message_library
 
+from library import tasks
+
 
 logger = logging.getLogger("django_mcq")
 
@@ -46,6 +48,8 @@ def get_lib_chat_data(request, pk):
     #     return HttpResponseForbidden("You are not allowed to access this quiz.")
 
     logger.debug(chat)
+
+    tasks.add.delay(5, 6)
 
     # Get the questions associated with this quiz
     chat_messages = LibMessage.objects.filter(chat=chat).order_by('order_number')

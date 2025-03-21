@@ -47,7 +47,8 @@ INSTALLED_APPS = [
     'accounts',
     'quiz',
     'chatbot',
-    'library'
+    'library',
+    'django_celery_results',
 ]
 
 MIDDLEWARE = [
@@ -166,4 +167,10 @@ LOGGING = {
         },
     },
 }
+
+# Celery Configuration
+CELERY_BROKER_URL = env("RABBIT_MQ_BROKER_URL")
+CELERY_RESULT_BACKEND = 'django-db'
+CELERY_TIMEZONE = 'UTC'
+CELERY_RESULT_EXTENDED = True
 

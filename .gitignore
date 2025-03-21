@@ -143,3 +143,5 @@ GitHub.sublime-settings
 
 local_storage/
 chroma_db_storage/
+
+*.sh
