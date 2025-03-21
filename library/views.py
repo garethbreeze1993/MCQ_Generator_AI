@@ -49,7 +49,7 @@ def get_lib_chat_data(request, pk):
 
     logger.debug(chat)
 
-    tasks.add.delay(5, 6)
+    # tasks.add.delay(5, 6)
 
     # Get the questions associated with this quiz
     chat_messages = LibMessage.objects.filter(chat=chat).order_by('order_number')
