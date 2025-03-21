@@ -23,6 +23,7 @@ jobs:
       DJANGO_ENV: ${{ secrets.DJANGO_ENV }}
       LOGGING_FILE_LOCATION: ${{ secrets.LOGGING_FILE_LOCATION }}
       ALLOWED_HOSTS: ${{ secrets.ALLOWED_HOSTS }}
+      RABBIT_MQ_BROKER_URL: ${{secrets.RABBIT_MQ_BROKER_URL}}
 
     services:
       postgres:
