@@ -17,7 +17,9 @@ from django.urls import reverse_lazy
 
 from library.forms import LibDocForm, LibChatTitleForm, SaveLibChatTitleForm
 from library.models import LibChat, LibMessage, LibDocuments, LibDocumentEmbeddings
-from library.helpers import upload_document_to_library, delete_document_from_library, answer_user_message_library
+from library.helpers import answer_user_message_library
+from library.tasks import upload_document_to_library, delete_document_from_library
+from library.utils import get_list_of_ids_for_chroma_deletion
 
 from library import tasks
 
@@ -105,6 +107,7 @@ def upload_document(request):
             lib_doc = form.save(commit=False)  # Don't save yet
             lib_doc.user = request.user  # Assign the logged-in user
             lib_doc.name = lib_doc.upload_file.name  # Save original filename
+            lib_doc.status = "uploaded"
 
             unique_user = f'user_{request.user.id}'
 
@@ -120,19 +123,14 @@ def upload_document(request):
 
             file_path = os.path.join(settings.MEDIA_ROOT, lib_doc.upload_file.name)
 
-            try:
-                end_id = upload_document_to_library(file_path=file_path, unique_user=unique_user, new_id=new_id)
 
-            except Exception as e:
-                transaction.set_rollback(True)  # This forces the entire transaction to roll back
-                logger.error(e)
-                messages.error(request, f"An error occurred: {str(e)}")
-                return render(request, "library/lib_upload_doc.html", {"form": form})
+            upload_document_to_library.delay_on_commit(file_path=file_path, unique_user=unique_user, new_id=new_id,
+                                                    document_pk=lib_doc.pk)
+
 
             lib_doc_embeddings = LibDocumentEmbeddings()
             lib_doc_embeddings.document = lib_doc
             lib_doc_embeddings.start_id = new_id
-            lib_doc_embeddings.end_id = end_id
 
             try:
                 lib_doc_embeddings.save()
@@ -202,8 +200,19 @@ class LibraryDocumentsDeleteView(LoginRequiredMixin, DeleteView):
 
         unique_user = f'user_{self.request.user.id}'
 
-        delete_document_from_library(
-            number_of_documents=number_documents, document_pk=instance.pk, unique_user=unique_user)
+        if number_documents == 1:
+            list_of_ids = None
+        else:
+            lib_doc = LibDocumentEmbeddings.objects.get(document_id=instance.pk)
+
+            start_id = lib_doc.start_id
+
+            end_id = lib_doc.end_id
+
+            list_of_ids = get_list_of_ids_for_chroma_deletion(start_id=start_id, end_id=end_id)
+
+        delete_document_from_library.delay_on_commit(
+            number_of_documents=number_documents, list_of_ids=list_of_ids, unique_user=unique_user)
 
 
         # Perform custom logic, e.g., delete the uploaded file from storage

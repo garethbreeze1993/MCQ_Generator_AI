@@ -2,6 +2,13 @@ from django.db import models
 
 from django.contrib.auth.models import User
 
+STATUS_CHOICES = [
+        ('uploaded', 'Uploaded'),
+        ('processing', 'Processing'),
+        ('completed', 'Completed'),
+        ('error', 'Error'),
+    ]
+
 def user_directory_path(instance, filename):
     # file will be uploaded to MEDIA_ROOT / user_<id>/<filename>
     return 'user_{0}/{1}'.format(instance.user.id, filename)
@@ -27,6 +34,7 @@ class LibDocuments(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     upload_file = models.FileField(upload_to=user_directory_path)
     datetime_added = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='completed')
 
     def __str__(self):
         return self.name
@@ -34,6 +42,6 @@ class LibDocuments(models.Model):
 class LibDocumentEmbeddings(models.Model):
     document = models.ForeignKey(LibDocuments, on_delete=models.CASCADE)
     start_id = models.IntegerField()
-    end_id = models.IntegerField()
+    end_id = models.IntegerField(null=True)
 
 
