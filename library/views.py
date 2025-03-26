@@ -21,8 +21,6 @@ from library.helpers import answer_user_message_library
 from library.tasks import upload_document_to_library, delete_document_from_library
 from library.utils import get_list_of_ids_for_chroma_deletion
 
-from library import tasks
-
 
 logger = logging.getLogger("django_mcq")
 
@@ -40,23 +38,13 @@ class LibChatListView(LoginRequiredMixin, ListView):
 @login_required(login_url='login')
 def get_lib_chat_data(request, pk):
 
-    logger.debug("testing output")
-    logger.debug(pk)
     # Get the quiz by pk or return 404 if not found
     chat = get_object_or_404(LibChat, pk=pk, user=request.user)
 
-    # # Check if the logged-in user is associated with the quiz
-    # if quiz.user != request.user:
-    #     return HttpResponseForbidden("You are not allowed to access this quiz.")
-
     logger.debug(chat)
-
-    # tasks.add.delay(5, 6)
 
     # Get the questions associated with this quiz
     chat_messages = LibMessage.objects.filter(chat=chat).order_by('order_number')
-
-
 
     # Send the structured data to the template
     context = {
@@ -80,6 +68,13 @@ class LibDocListView(LoginRequiredMixin, ListView):
 def lib_chatbot_new_chat(request):
     request.session['library_messages'] = []
     request.session['number_lib_chats'] = 1
+
+    number_of_docs = LibDocuments.objects.filter(user=request.user, status="completed").count()
+
+    if number_of_docs == 0:
+        messages.error(request, "Please upload some documents before using the chatbot")
+        return redirect("lib_doc_list")
+
     form = LibChatTitleForm(user=request.user)
     context_dict = {'form': form}
     return render(request=request, template_name='library/lib_chatbot.html', context=context_dict)
@@ -89,8 +84,6 @@ def upload_document(request):
     form = None
 
     if request.method == "POST":
-
-        logger.info('hitsa')
 
         form = LibDocForm(request.POST, request.FILES)
 

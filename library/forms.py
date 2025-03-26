@@ -30,7 +30,7 @@ class LibChatTitleForm(forms.Form):
 
     def __init__(self, user, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["document"].queryset = LibDocuments.objects.filter(user=user)
+        self.fields["document"].queryset = LibDocuments.objects.filter(user=user, status="completed")
 
 class SaveLibChatTitleForm(forms.Form):
     name_title = forms.CharField(label="Chat Name", max_length=128)

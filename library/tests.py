@@ -183,6 +183,17 @@ class LibraryTestCase(TestCase):
         self.assertEqual(self.authenticated_client.session['library_messages'], [])
         self.assertEqual(self.authenticated_client.session['number_lib_chats'], 1)
 
+    def test_new_libchat_no_documents_for_user(self):
+
+        url = reverse("new_lib_chat")
+        # Simulate a GET request to the view
+        response = self.random_client.get(url)
+
+        self.assertEqual(response.status_code, 302)
+
+        redirect_url = reverse("lib_doc_list")
+        self.assertEqual(response.url, redirect_url)
+
     def test_new_libchat_get_request_unauthorised(self):
         url = reverse("new_lib_chat")
         # Simulate a GET request to the view
@@ -582,15 +593,16 @@ class LibraryTestCase(TestCase):
         self.assertTrue(documents.exists())
         self.assertEqual(documents.count(), 1)
         document = documents.first()
+        self.assertEqual(document.status, "uploaded")
 
         file_path = os.path.join(settings.MEDIA_ROOT, document.upload_file.name)
         unique_user = f'user_{LibraryTestCase.random_user.id}'
 
-        # chroma_upload_func.assert_called_once_with(file_path=file_path, unique_user=unique_user, new_id=1)
+        chroma_upload_func.assert_called_once_with(file_path=file_path, unique_user=unique_user,
+                                                   new_id=1, document_pk=document.pk)
 
         embeddings = LibDocumentEmbeddings.objects.get(document=document)
         self.assertEqual(embeddings.start_id, 1)
-        # self.assertEqual(embeddings.end_id, end_id)
 
     @patch("library.views.upload_document_to_library.delay_on_commit")
     def test_upload_document_lib_embeddings_fail_test_user_save_successful_not_first_doc(self, chroma_upload_func):
@@ -622,16 +634,16 @@ class LibraryTestCase(TestCase):
         self.assertTrue(documents.exists())
         self.assertEqual(documents.count(), 1)
         document = documents.first()
+        self.assertEqual(document.status, "uploaded")
 
         file_path = os.path.join(settings.MEDIA_ROOT, document.upload_file.name)
         unique_user = f'user_{LibraryTestCase.test_user.id}'
 
-        # chroma_upload_func.assert_called_once_with(file_path=file_path, unique_user=unique_user,
-        #                                            new_id=expected_start_id)
+        chroma_upload_func.assert_called_once_with(file_path=file_path, unique_user=unique_user,
+                                                   new_id=expected_start_id, document_pk=document.pk)
 
         embeddings = LibDocumentEmbeddings.objects.get(document=document)
         self.assertEqual(embeddings.start_id, expected_start_id)
-        # self.assertEqual(embeddings.end_id, expected_end_id)
 
     @patch("library.views.delete_document_from_library.delay_on_commit")
     def test_lib_doc_delete_different_user(self, delete_chroma_func):
@@ -671,6 +683,8 @@ class LibraryTestCase(TestCase):
         specific_document = document_delete.first()
         file_path = specific_document.upload_file.path
         document_embedding = LibDocumentEmbeddings.objects.filter(document=specific_document)
+        doc_embedding_obj = document_embedding.first()
+        list_of_ids = get_list_of_ids_for_chroma_deletion(doc_embedding_obj.start_id, doc_embedding_obj.end_id)
         unique_user = f'user_{LibraryTestCase.test_user.id}'
 
         self.assertTrue(document_delete.exists())
@@ -695,8 +709,8 @@ class LibraryTestCase(TestCase):
         self.assertFalse(document_delete.exists())
         self.assertFalse(document_embedding.exists())
         self.assertFalse(os.path.exists(file_path))
-        # delete_chroma_func.assert_called_once_with(number_of_documents=before_count,
-        #                                            document_pk=pk, unique_user=unique_user)
+        delete_chroma_func.assert_called_once_with(number_of_documents=before_count, list_of_ids=list_of_ids,
+                                                   unique_user=unique_user)
 
 
 class UtilsTestCase(unittestTestCase):
