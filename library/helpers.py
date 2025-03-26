@@ -6,12 +6,8 @@ import chromadb
 import chromadb.utils.embedding_functions as embedding_functions
 from langchain_openai import ChatOpenAI
 
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.prompts import PromptTemplate
-from langchain_community.document_loaders import PyPDFLoader
 
-from library.models import LibDocumentEmbeddings
-from library.utils import get_final_id, get_lists_for_chroma_upsert, get_list_of_ids_for_chroma_deletion
 
 logger = logging.getLogger("django_mcq")
 
