@@ -24,9 +24,6 @@ jobs:
       LOGGING_FILE_LOCATION: ${{ secrets.LOGGING_FILE_LOCATION }}
       ALLOWED_HOSTS: ${{ secrets.ALLOWED_HOSTS }}
       CELERY_BROKER_URL: ${{secrets.CELERY_BROKER_URL}}
-      BROKER_HOST: ${{secrets.BROKER_HOST}}
-      BROKER_PORT: ${{secrets.BROKER_PORT}}
-      BROKER_VHOST: ${{secrets.BROKER_VHOST}}
 
     services:
       postgres:
@@ -42,15 +39,6 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
-
-      rabbitmq:
-        image: rabbitmq
-        ports:
-          - 5672
-        env:
-          RABBITMQ_DEFAULT_USER: ${{secrets.BROKER_USERNAME}}
-          RABBITMQ_DEFAULT_PASS: ${{secrets.BROKER_PASSWORD}}
-          RABBITMQ_DEFAULT_VHOST: ${{secrets.BROKER_VHOST}}
 
     steps:
     - uses: actions/checkout@v4
@@ -70,5 +58,3 @@ jobs:
     - name: Collect Static
       run: |
         python manage.py collectstatic --noinput
-    - name: Run Celery workers
-      run: celery -A MCQ_Generator worker -l INFO
