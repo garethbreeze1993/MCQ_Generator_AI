@@ -1,6 +1,7 @@
 import logging
 import json
 import os
+import time
 
 from django.contrib import messages
 from django.db import transaction
@@ -89,6 +90,9 @@ def upload_document(request):
 
         if form.is_valid():
 
+            logger.debug("form_valid 1")
+            time_1 = time.time()
+
             latest_doc = LibDocuments.objects.filter(user=request.user).order_by('-datetime_added').first()
 
             if latest_doc:
@@ -101,7 +105,9 @@ def upload_document(request):
             lib_doc.user = request.user  # Assign the logged-in user
             lib_doc.name = lib_doc.upload_file.name  # Save original filename
             lib_doc.status = "uploaded"
-
+            logger.debug("form_valid 1=2")
+            time_2 = time.time()
+            logger.debug(time_2 - time_1)
             unique_user = f'user_{request.user.id}'
 
             new_id = last_id + 1
@@ -113,6 +119,10 @@ def upload_document(request):
                 logger.error(e)
                 messages.error(request, f"An error occurred: {str(e)}")
                 return render(request, "library/lib_upload_doc.html", {"form": form})
+
+            logger.debug("form_valid 2=3")
+            time_3 = time.time()
+            logger.debug(time_3 - time_2)
 
             file_path = os.path.join(settings.MEDIA_ROOT, lib_doc.upload_file.name)
 
