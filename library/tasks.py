@@ -50,18 +50,46 @@ def upload_document_to_library(file_path, unique_user, new_id, document_pk):
             collection = chroma_client.get_or_create_collection(name=unique_user, embedding_function=openai_ef)
 
             loader = PyPDFLoader(file_path)
-            docs = loader.load()
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=20)
-            all_splits = text_splitter.split_documents(docs)
-
-            id_list, page_content_list, metadata_list = get_lists_for_chroma_upsert(all_splits=all_splits, new_id=new_id)
-
-            collection.upsert(
-                ids=id_list,
-                metadatas=metadata_list,
-                documents=page_content_list,
+            # docs = loader.lazy_load()
+            # text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=20)
+            text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=500,  # Maximum number of characters in each chunk
+                chunk_overlap=20,  # Number of characters to overlap between chunks
+                length_function=len,  # Use standard Python len() function to measure chunk size
+                separators=["\n\n", "\n", " ", ""]  # Progressively try these separators
             )
 
+            last_id = None
+            logger.debug('DOCSSSS')
+
+            for doc in loader.lazy_load():
+
+                page_content = doc.page_content
+
+                if not page_content:
+                    continue
+
+                page_chunks = text_splitter.split_text(page_content)
+
+                logger.debug(page_chunks)
+
+                if last_id:
+                    new_id = last_id + 1
+
+                id_list, metadata_list = get_lists_for_chroma_upsert(all_splits=page_chunks, new_id=new_id,
+                                                                     metadata=doc.metadata)
+
+                logger.info(id_list)
+                logger.info(metadata_list)
+                logger.info(page_chunks)
+                #
+                collection.upsert(
+                    ids=id_list,
+                    metadatas=metadata_list,
+                    documents=page_chunks,
+                )
+                last_id = get_final_id(num=id_list[-1])
+            #
             logger.info(collection.count())
 
             logger.info(id_list[-1])

@@ -9,19 +9,17 @@ def get_final_id(num: str):
         return fin
 
 
-def get_lists_for_chroma_upsert(all_splits: list, new_id: int):
+def get_lists_for_chroma_upsert(all_splits: list, new_id: int, metadata: dict):
 
     id_list = []
-    page_content_list = []
     metadata_list = []
 
     for split in all_splits:
         id_list.append(f'id{new_id}')
-        page_content_list.append(split.page_content)
-        metadata_list.append(split.metadata)
+        metadata_list.append(metadata)
         new_id += 1
 
-    return id_list, page_content_list, metadata_list
+    return id_list, metadata_list
 
 
 def get_list_of_ids_for_chroma_deletion(start_id: int, end_id: int):

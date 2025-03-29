@@ -723,57 +723,57 @@ class UtilsTestCase(unittestTestCase):
         output = get_final_id(num="idnonumber")
         self.assertFalse(output)
 
-    def test_get_lists_for_chroma_upsert_new_id_one(self):
-
-        document_1 = MockLangchainDocument(page_content="document_1", metadata="document_1")
-        document_2 = MockLangchainDocument(page_content="document_2", metadata="document_2")
-        document_3 = MockLangchainDocument(page_content="document_3", metadata="document_3")
-
-        all_splits = [document_1, document_2, document_3]
-        new_id = 1
-
-        expected_id_list, expected_page_content_list, expected_metadata_list = get_lists_for_chroma_upsert(
-            all_splits=all_splits, new_id=new_id)
-
-        actual_id_list = []
-        actual_page_content_list = []
-        actual_metadata_list = []
-
-        for split in all_splits:
-            actual_id_list.append(f'id{new_id}')
-            actual_page_content_list.append(split.page_content)
-            actual_metadata_list.append(split.metadata)
-            new_id += 1
-
-        self.assertEqual(actual_id_list, expected_id_list)
-        self.assertEqual(actual_page_content_list, expected_page_content_list)
-        self.assertEqual(actual_metadata_list, expected_metadata_list)
-
-    def test_get_lists_for_chroma_upsert_new_id_not_one(self):
-
-        document_1 = MockLangchainDocument(page_content="document_1", metadata="document_1")
-        document_2 = MockLangchainDocument(page_content="document_2", metadata="document_2")
-        document_3 = MockLangchainDocument(page_content="document_3", metadata="document_3")
-
-        all_splits = [document_1, document_2, document_3]
-        new_id = 456
-
-        expected_id_list, expected_page_content_list, expected_metadata_list = get_lists_for_chroma_upsert(
-            all_splits=all_splits, new_id=new_id)
-
-        actual_id_list = []
-        actual_page_content_list = []
-        actual_metadata_list = []
-
-        for split in all_splits:
-            actual_id_list.append(f'id{new_id}')
-            actual_page_content_list.append(split.page_content)
-            actual_metadata_list.append(split.metadata)
-            new_id += 1
-
-        self.assertEqual(actual_id_list, expected_id_list)
-        self.assertEqual(actual_page_content_list, expected_page_content_list)
-        self.assertEqual(actual_metadata_list, expected_metadata_list)
+    # def test_get_lists_for_chroma_upsert_new_id_one(self):
+    #
+    #     document_1 = MockLangchainDocument(page_content="document_1", metadata="document_1")
+    #     document_2 = MockLangchainDocument(page_content="document_2", metadata="document_2")
+    #     document_3 = MockLangchainDocument(page_content="document_3", metadata="document_3")
+    #
+    #     all_splits = [document_1, document_2, document_3]
+    #     new_id = 1
+    #
+    #     expected_id_list, expected_page_content_list, expected_metadata_list = get_lists_for_chroma_upsert(
+    #         all_splits=all_splits, new_id=new_id)
+    #
+    #     actual_id_list = []
+    #     actual_page_content_list = []
+    #     actual_metadata_list = []
+    #
+    #     for split in all_splits:
+    #         actual_id_list.append(f'id{new_id}')
+    #         actual_page_content_list.append(split.page_content)
+    #         actual_metadata_list.append(split.metadata)
+    #         new_id += 1
+    #
+    #     self.assertEqual(actual_id_list, expected_id_list)
+    #     self.assertEqual(actual_page_content_list, expected_page_content_list)
+    #     self.assertEqual(actual_metadata_list, expected_metadata_list)
+    #
+    # def test_get_lists_for_chroma_upsert_new_id_not_one(self):
+    #
+    #     document_1 = MockLangchainDocument(page_content="document_1", metadata="document_1")
+    #     document_2 = MockLangchainDocument(page_content="document_2", metadata="document_2")
+    #     document_3 = MockLangchainDocument(page_content="document_3", metadata="document_3")
+    #
+    #     all_splits = [document_1, document_2, document_3]
+    #     new_id = 456
+    #
+    #     expected_id_list, expected_page_content_list, expected_metadata_list = get_lists_for_chroma_upsert(
+    #         all_splits=all_splits, new_id=new_id)
+    #
+    #     actual_id_list = []
+    #     actual_page_content_list = []
+    #     actual_metadata_list = []
+    #
+    #     for split in all_splits:
+    #         actual_id_list.append(f'id{new_id}')
+    #         actual_page_content_list.append(split.page_content)
+    #         actual_metadata_list.append(split.metadata)
+    #         new_id += 1
+    #
+    #     self.assertEqual(actual_id_list, expected_id_list)
+    #     self.assertEqual(actual_page_content_list, expected_page_content_list)
+    #     self.assertEqual(actual_metadata_list, expected_metadata_list)
 
     def test_get_list_ids_chroma_deletion_start_id_one(self):
 

@@ -5,8 +5,8 @@
     <!-- quiz_detail.html -->
 <h1>Document: {{ document.name }}</h1>
     <h4>Status: {{ document.status }}</h4>
+    <a class="btn_del" href="{% url 'delete_document' document.pk %}">Delete Document</a>
     {% if document.status == "completed" %}
-        <a class="btn_del" href="{% url 'delete_document' document.pk %}">Delete Document</a>
         <a class="btn_copy_lib" href="{% url 'download_file' document.pk %}">Download Document</a>
     {% endif  %}
 

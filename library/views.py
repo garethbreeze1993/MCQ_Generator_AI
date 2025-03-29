@@ -203,19 +203,22 @@ class LibraryDocumentsDeleteView(LoginRequiredMixin, DeleteView):
 
         unique_user = f'user_{self.request.user.id}'
 
-        if number_documents == 1:
-            list_of_ids = None
-        else:
-            lib_doc = LibDocumentEmbeddings.objects.get(document_id=instance.pk)
+        list_of_ids = None
 
-            start_id = lib_doc.start_id
+        if instance.status == "completed":
 
-            end_id = lib_doc.end_id
+            if number_documents > 1:
+                lib_doc = LibDocumentEmbeddings.objects.get(document_id=instance.pk)
 
-            list_of_ids = get_list_of_ids_for_chroma_deletion(start_id=start_id, end_id=end_id)
+                start_id = lib_doc.start_id
 
-        delete_document_from_library.delay_on_commit(
-            number_of_documents=number_documents, list_of_ids=list_of_ids, unique_user=unique_user)
+                end_id = lib_doc.end_id
+
+                list_of_ids = get_list_of_ids_for_chroma_deletion(start_id=start_id, end_id=end_id)
+
+
+            delete_document_from_library.delay_on_commit(
+                number_of_documents=number_documents, list_of_ids=list_of_ids, unique_user=unique_user)
 
 
         # Perform custom logic, e.g., delete the uploaded file from storage
