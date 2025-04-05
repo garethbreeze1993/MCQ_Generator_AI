@@ -13,7 +13,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from langchain_community.document_loaders import PyPDFLoader
 
-from library.utils import get_final_id, get_lists_for_chroma_upsert
+from library.utils import get_final_id, get_lists_for_chroma_upsert, get_list_of_ids_for_chroma_deletion
 
 logger = logging.getLogger("django_mcq")
 
@@ -32,7 +32,7 @@ def upload_document_to_library(file_path, unique_user, new_id, document_pk):
         raise Exception("Document not found.")
 
     try:
-
+        need_delete = False
         with transaction.atomic():
 
             document.status = "processing"
@@ -89,6 +89,7 @@ def upload_document_to_library(file_path, unique_user, new_id, document_pk):
                     documents=page_chunks,
                 )
                 last_id = get_final_id(num=id_list[-1])
+                need_delete = True
             #
             logger.info(collection.count())
 
@@ -105,6 +106,12 @@ def upload_document_to_library(file_path, unique_user, new_id, document_pk):
         logger.error(e)
         document.status = "error"
         document.save()
+        document_embeddings.delete()
+        if need_delete:
+            number_of_documents = models.LibDocuments.objects.filter(user=document.user).count()
+            cleanup_failed_document_upload(number_of_documents=number_of_documents,
+                                           new_id=new_id, collection=collection, unique_user=unique_user,
+                                           chroma_client=chroma_client, last_id=last_id)
         raise Exception(e)
 
     else:
@@ -140,3 +147,25 @@ def delete_document_from_library(number_of_documents: int, list_of_ids: Optional
 
     return "Success Delete"
 
+
+def cleanup_failed_document_upload(number_of_documents: int, new_id: int, collection, unique_user: str, chroma_client,
+                                   last_id: int):
+
+    if number_of_documents == 1:
+        chroma_client.delete_collection(name=unique_user)
+        return
+
+    try:
+        # end_id = collection.count()
+
+        end_id = last_id
+
+        list_of_ids = get_list_of_ids_for_chroma_deletion(start_id=new_id, end_id=end_id)
+
+        collection.delete(
+            ids=list_of_ids
+        )
+
+    except Exception as e:
+        logger.error(e)
+        return
