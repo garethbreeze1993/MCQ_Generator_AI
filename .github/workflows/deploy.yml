@@ -1,0 +1,54 @@
+name: Django CD
+
+on:
+  workflow_dispatch:  # Manual trigger only
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+
+    env:
+      DATABASE_HOST: ${{ secrets.DATABASE_HOSTNAME }}
+      DATABASE_PORT: ${{ secrets.DATABASE_PORT }}
+      DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+      DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
+      DATABASE_USER: ${{ secrets.DATABASE_USERNAME }}
+      OPEN_API_KEY: ${{ secrets.OPEN_API_KEY }}
+      PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      DJANGO_ENV: ${{ secrets.DJANGO_ENV }}
+      LOGGING_FILE_LOCATION: ${{ secrets.LOGGING_FILE_LOCATION }}
+      ALLOWED_HOSTS: ${{ secrets.ALLOWED_HOSTS }}
+      CELERY_BROKER_URL: ${{secrets.CELERY_BROKER_URL}}
+
+    steps:
+      - name: Pulling git repo
+        uses: actions/checkout@v4
+      - name: deploy to ubuntu server via ssh
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            exec > /home/$USER/deployment_logs.log 2>&1
+            echo "Time: $(date). Time and date so know when written to logs."
+            cd app/MCQ_Generator
+            git pull
+            cd ..
+            cd mcq_venv
+            activate () {
+            . $PWD/venv/bin/activate
+            }
+            
+            activate
+            pip3 install -r requirements.txt
+            python manage.py migrate
+            python manage.py collectstatic --noinput
+            echo "Restarting api service"
+            sudo systemctl restart gunicorn
+            echo "Restarting celery"
+            sudo systemctl restart celery
+            echo "rebooting server"

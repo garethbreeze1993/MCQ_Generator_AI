@@ -15,16 +15,17 @@
         {% for error in form.upload_file.errors %}
             <span class="text-danger">{{ error }}</span>
         {% endfor %}
+    <span id="client_error"></span>
     </div>
 
-    <button class="btn_copy" type="submit">Upload Document</button>
+    <button id="upload_btn_lib" class="btn_copy" type="submit">Upload Document</button>
     </form>
     <br/>
     <br/>
 
 {% endblock %}
 {% block scripts %}
-
+<script src="{% static 'upload_file.js' %}"></script>
 {% endblock %}
 
 
