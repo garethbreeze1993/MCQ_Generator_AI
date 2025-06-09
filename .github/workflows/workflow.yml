@@ -24,6 +24,8 @@ jobs:
       LOGGING_FILE_LOCATION: ${{ secrets.LOGGING_FILE_LOCATION }}
       ALLOWED_HOSTS: ${{ secrets.ALLOWED_HOSTS }}
       CELERY_BROKER_URL: ${{secrets.CELERY_BROKER_URL}}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
 
     services:
       postgres:
