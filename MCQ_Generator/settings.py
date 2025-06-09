@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'quiz',
     'chatbot',
     'library',
+    'videos',
     'django_celery_results',
 ]
 
@@ -173,4 +174,8 @@ CELERY_BROKER_URL = env("CELERY_BROKER_URL")
 CELERY_RESULT_BACKEND = 'django-db'
 CELERY_TIMEZONE = 'UTC'
 CELERY_RESULT_EXTENDED = True
+
+
+AWS_REGION = env('AWS_REGION')
+S3_BUCKET_NAME= env('S3_BUCKET_NAME')
 

@@ -1,0 +1,15 @@
+<<!-- templates/home.html -->
+{% extends "home.html" %}
+
+{% block app_content %}
+    <!-- quiz_detail.html -->
+<h1>Document: {{ video.title }}</h1>
+    <h4>Status: {{ video.status }}</h4>
+    <p>{{ video.prompt }}</p>
+    <a class="btn_del" href="{% url 'delete_video' video.pk %}">Delete Video</a>
+    {% if document.status == "completed" %}
+        <p>Completed</p>
+{#        <a class="btn_copy_lib" href="{% url 'download_video' document.pk %}">Download Document</a>#}
+    {% endif  %}
+    
+{% endblock %}

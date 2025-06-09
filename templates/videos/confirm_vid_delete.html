@@ -1,0 +1,8 @@
+{% extends "home.html" %}
+{% block app_content %}
+<form method="post">{% csrf_token %}
+    <p>Are you sure you want to delete this Video?</p>
+    {{ form }}
+    <input class="btn_del" type="submit" value="Confirm">
+</form>
+{% endblock %}
