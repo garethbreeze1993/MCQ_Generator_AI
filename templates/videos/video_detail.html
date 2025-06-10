@@ -7,9 +7,9 @@
     <h4>Status: {{ video.status }}</h4>
     <p>{{ video.prompt }}</p>
     <a class="btn_del" href="{% url 'delete_video' video.pk %}">Delete Video</a>
-    {% if document.status == "completed" %}
+{#    {% if document.status == "completed" %}#}
         <p>Completed</p>
-{#        <a class="btn_copy_lib" href="{% url 'download_video' document.pk %}">Download Document</a>#}
-    {% endif  %}
+        <a class="btn_copy_lib" href="{% url 'download_video' video.pk %}">Download Video</a>
+{#    {% endif  %}#}
     
 {% endblock %}

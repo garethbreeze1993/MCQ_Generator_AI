@@ -1,3 +1,8 @@
+import boto3
+from botocore.exceptions import ClientError
+
+from io import BytesIO
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic.list import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -6,11 +11,12 @@ from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.views.generic.edit import DeleteView
 from django.urls import reverse_lazy
-from django.http import Http404
+from django.http import Http404, FileResponse
 
 import logging
 
 from videos.forms import VideoForm
+from videos.tasks import delete_s3_file
 
 from django.contrib import messages
 
@@ -100,3 +106,54 @@ class VideoDeleteView(LoginRequiredMixin, DeleteView):
         Handle unauthorized access attempts.
         """
         raise Http404("You do not have permission to delete this quiz.")
+
+    def form_valid(self, form):
+
+        instance = self.get_object()
+
+        delete_s3_file.delay_on_commit(video_id=instance.pk)
+
+        # Proceed with the standard delete operation
+        return super().form_valid(form)
+
+@login_required
+def download_video(request, pk):
+
+    # Get the file object
+    video = get_object_or_404(Video, pk=pk, user=request.user)
+
+    try:
+
+        s3 = boto3.client(
+            's3',
+            aws_access_key_id=settings.AWS_ACCESS_KEY,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            region_name=settings.AWS_REGION
+        )
+
+        s3_object = s3.get_object(Bucket=settings.S3_BUCKET_NAME, Key=f"videos/{video.pk}.mp4")
+
+        file_stream = BytesIO(s3_object['Body'].read())
+
+        # Return the file response
+        response = FileResponse(file_stream, as_attachment=True)
+        response['Content-Disposition'] = f'attachment; filename="{video.pk}.mp4"'
+
+
+    except ClientError as client_error:
+        if client_error.response['Error']['Code'] == 'NoSuchKey':
+            logger.error(client_error)
+            messages.error(request, "File not found in S3")
+        else:
+            logger.error(client_error)
+            messages.error(request, "An error occurred")
+
+        return redirect("video_detail", pk=video.pk)
+
+    except Exception as e:
+        logger.error(e)
+        messages.error(request, "An error occurred")
+        return redirect("video_detail", pk=video.pk)
+
+    else:
+        return response

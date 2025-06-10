@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 import environ
+from google.auth.environment_vars import AWS_ACCESS_KEY_ID
 
 env = environ.Env()
 
@@ -177,5 +178,7 @@ CELERY_RESULT_EXTENDED = True
 
 
 AWS_REGION = env('AWS_REGION')
-S3_BUCKET_NAME= env('S3_BUCKET_NAME')
+S3_BUCKET_NAME = env('S3_BUCKET_NAME')
+AWS_ACCESS_KEY = env('AWS_ACCESS_KEY')
+AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
 

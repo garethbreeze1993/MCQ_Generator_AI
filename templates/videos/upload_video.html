@@ -1,11 +1,13 @@
 {% extends "home.html" %}
 {% load static %}
 {% block stylesheets %}
-{#    <link rel="stylesheet" href="{% static 'quiz_style.css' %}">#}
+    <link rel="stylesheet" href="{% static 'quiz_style.css' %}">
 {% endblock %}
 {% block app_content %}
 <form method="post">
     {% csrf_token %}
+
+<div class="form-group">
     
     <label for="{{ form.title.id_for_label }}">Title</label>
     {{ form.title }}
@@ -14,14 +16,13 @@
         {% endfor %}
 <br/>
     <label for="{{ form.prompt.id_for_label }}">Prompt</label>
-    <textarea name="{{ form.prompt.name }}" id="{{ form.prompt.id_for_label }}">
-        {{ form.prompt.value|default_if_none:'' }}
-    </textarea>
+        {{ form.prompt }}
     {% for error in form.prompt.errors %}
             <span class="text-danger">{{ error }}</span>
         {% endfor %}
+</div>
 
-    <button type="submit">Submit</button>
+    <button id="upload_btn_lib" class="btn_copy" type="submit">Submit</button>
 </form>
 {% endblock %}
 {% block scripts %}
