@@ -28,6 +28,7 @@ jobs:
       S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+      VIDEOAPI_BASE_URL: ${{ secrets.VIDEOAPI_BASE_URL }}
 
     services:
       postgres:

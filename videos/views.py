@@ -16,7 +16,7 @@ from django.http import Http404, FileResponse
 import logging
 
 from videos.forms import VideoForm
-from videos.tasks import delete_s3_file
+from videos.tasks import delete_s3_file, send_request_to_text_to_vid_api, send_test_request
 
 from django.contrib import messages
 
@@ -72,6 +72,8 @@ def upload_video(request):
                 logger.error(e)
                 messages.error(request, f"An error occurred: {str(e)}")
                 return render(request, "videos/upload_video.html", {"form": form})
+
+            send_request_to_text_to_vid_api.delay_on_commit(video_id=video.pk, prompt=video.prompt)
 
             messages.success(request, "Data saved successfully!")
             return redirect("video_index")  # Redirect after saving
@@ -157,3 +159,8 @@ def download_video(request, pk):
 
     else:
         return response
+
+@login_required
+def test_video():
+    send_test_request.delay()
+    return redirect("video_index")
