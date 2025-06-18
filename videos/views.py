@@ -161,6 +161,6 @@ def download_video(request, pk):
         return response
 
 @login_required
-def test_video():
+def test_video(request):
     send_test_request.delay()
     return redirect("video_index")
