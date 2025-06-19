@@ -22,6 +22,11 @@ jobs:
       LOGGING_FILE_LOCATION: ${{ secrets.LOGGING_FILE_LOCATION }}
       ALLOWED_HOSTS: ${{ secrets.ALLOWED_HOSTS }}
       CELERY_BROKER_URL: ${{secrets.CELERY_BROKER_URL}}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+      VIDEOAPI_BASE_URL: ${{ secrets.VIDEOAPI_BASE_URL }}
 
     steps:
       - name: Pulling git repo
@@ -33,7 +38,8 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            exec > /home/$USER/deployment_logs.log 2>&1
+            set -e
+            exec > ~/deployment_logs.log 2>&1
             echo "Time: $(date). Time and date so know when written to logs."
             cd app/MCQ_Generator
             git pull
@@ -51,4 +57,4 @@ jobs:
             sudo systemctl restart gunicorn
             echo "Restarting celery"
             sudo systemctl restart celery
-            echo "rebooting server"
+            echo "Deployment finished successfully at $(date)"

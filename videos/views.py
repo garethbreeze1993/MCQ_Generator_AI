@@ -17,6 +17,7 @@ import logging
 
 from videos.forms import VideoForm
 from videos.tasks import delete_s3_file, send_request_to_text_to_vid_api, send_test_request
+from videos.utils import get_s3_client
 
 from django.contrib import messages
 
@@ -113,7 +114,8 @@ class VideoDeleteView(LoginRequiredMixin, DeleteView):
 
         instance = self.get_object()
 
-        delete_s3_file.delay_on_commit(video_id=instance.pk)
+        if instance.status == "completed":
+            delete_s3_file.delay_on_commit(video_id=instance.pk)
 
         # Proceed with the standard delete operation
         return super().form_valid(form)
@@ -124,14 +126,13 @@ def download_video(request, pk):
     # Get the file object
     video = get_object_or_404(Video, pk=pk, user=request.user)
 
-    try:
+    s3 = get_s3_client()
 
-        s3 = boto3.client(
-            's3',
-            aws_access_key_id=settings.AWS_ACCESS_KEY,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_REGION
-        )
+    if s3 is None:
+        messages.error(request, "An error occurred")
+        return redirect("video_detail", pk=video.pk)
+
+    try:
 
         s3_object = s3.get_object(Bucket=settings.S3_BUCKET_NAME, Key=f"videos/{video.pk}.mp4")
 
