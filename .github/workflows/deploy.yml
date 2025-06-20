@@ -41,7 +41,7 @@ jobs:
             set -e
             exec > ~/deployment_logs.log 2>&1
             echo "Time: $(date). Time and date so know when written to logs."
-            cd app/MCQ_Generator
+            cd app/MCQ_Generator_AI
             git pull
             cd ..
             cd mcq_venv
