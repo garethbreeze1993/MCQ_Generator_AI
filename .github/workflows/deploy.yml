@@ -50,6 +50,8 @@ jobs:
             }
             
             activate
+            cd ..
+            cd MCQ_Generator_AI
             pip3 install -r requirements.txt
             python manage.py migrate
             python manage.py collectstatic --noinput
