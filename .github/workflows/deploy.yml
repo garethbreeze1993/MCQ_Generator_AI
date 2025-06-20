@@ -46,7 +46,7 @@ jobs:
             cd ..
             cd mcq_venv
             activate () {
-            . $PWD/venv/bin/activate
+            . $PWD/bin/activate
             }
             
             activate
