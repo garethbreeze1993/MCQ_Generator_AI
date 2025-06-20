@@ -66,6 +66,7 @@ def upload_video(request):
             s3_url = f"https://{s3_bucket}.s3.{region}.amazonaws.com/{s3_key}"
             video.s_three_url = s3_url
             video.celery_task_id = None
+            video.status = "processing"
 
             try:
                 video.save()
