@@ -42,7 +42,7 @@ def send_request_to_text_to_vid_api(self, video_id: int, prompt: str):
                 "video_id": video_id,
                 "celery_task_id": self.request.id
             },
-            timeout=30
+            timeout=600
         )
         response.raise_for_status()
 
