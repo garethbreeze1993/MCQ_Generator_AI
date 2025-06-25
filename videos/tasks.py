@@ -32,7 +32,7 @@ def delete_s3_file(video_id: int):
 
 @shared_task(bind=True)
 def send_request_to_text_to_vid_api(self, video_id: int, prompt: str):
-    status_msg = "processing"
+    status_msg = "uploaded"
     try:
         # Step 1: Submit job to FastAPI
         response = requests.post(
@@ -42,14 +42,14 @@ def send_request_to_text_to_vid_api(self, video_id: int, prompt: str):
                 "video_id": video_id,
                 "celery_task_id": self.request.id
             },
-            timeout=600
+            timeout=30
         )
         response.raise_for_status()
 
         # Parse and check the response content
         data = response.json()
-        if data.get("message") == "Video generated":
-            status_msg = "completed"
+        if data.get("message") == "Video generation started. Use the job_id to check status.":
+            status_msg = "processing"
 
         else:
             logger.error(data)
@@ -69,6 +69,7 @@ def send_request_to_text_to_vid_api(self, video_id: int, prompt: str):
     finally:
         video = Video.objects.get(pk=video_id)
         video.status = status_msg
+        video.celery_task_id = self.request.id
         video.save()
 
 
