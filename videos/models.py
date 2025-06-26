@@ -17,4 +17,9 @@ class Video(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='uploaded')
     celery_task_id = models.CharField(null=True, blank=True)
     prompt = models.CharField(validators=[validate_prompt_token_length])
-    s_three_url = models.URLField()
+    s_three_url = models.URLField(null=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'title'], name='unique_video_title_per_user')
+        ]

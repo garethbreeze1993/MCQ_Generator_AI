@@ -27,6 +27,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
       VIDEOAPI_BASE_URL: ${{ secrets.VIDEOAPI_BASE_URL }}
+      DJANGO_API_KEY: ${{ secrets.DJANGO_API_KEY }}
 
     steps:
       - name: Pulling git repo

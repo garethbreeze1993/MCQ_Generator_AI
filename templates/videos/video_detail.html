@@ -8,6 +8,9 @@
     <p>{{ video.prompt }}</p>
     {% if video.status != "processing" %}
         <a class="btn_del" href="{% url 'delete_video' video.pk %}">Delete Video</a>
+        {% else %}
+        <p>status = {{ status }}</p>
+        <p>message = {{ message }}</p>
     {% endif %}
     {% if video.status == "completed" %}
         <p>Completed</p>

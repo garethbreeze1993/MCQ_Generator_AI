@@ -11,9 +11,13 @@ from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.views.generic.edit import DeleteView
 from django.urls import reverse_lazy
-from django.http import Http404, FileResponse
+from django.http import Http404, FileResponse, JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 
 import logging
+import json
+import requests
 
 from videos.forms import VideoForm
 from videos.tasks import delete_s3_file, send_request_to_text_to_vid_api, send_test_request
@@ -49,6 +53,52 @@ class VideoDetailView(LoginRequiredMixin, DetailView):
         queryset = self.get_queryset()
         return get_object_or_404(queryset, pk=self.kwargs.get("pk"))
 
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+
+        status = None
+        message = None
+
+        if self.object.status == "processing":
+            status, message = self.poll_video_status(self.object)
+
+        context = self.get_context_data(object=self.object, status=status, message=message)
+        return self.render_to_response(context)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # 🔽 Add your extra data here
+        context["status"] = kwargs.get("status", None)
+        context["message"] = kwargs.get("message", None)
+
+        return context
+
+    def poll_video_status(self, video):
+        """
+        Polls external API for latest status based on the video object.
+        This is just a placeholder — add your logic.
+        """
+
+        try:
+            response = requests.get(f"{settings.VIDEOAPI_BASE_URL}/status/{video.celery_task_id}")
+            response.raise_for_status()
+            data = response.json()
+
+        except requests.RequestException as e:
+            # Handle or log error
+            logger.error(f"Error polling API: {e}")
+            message = f"Error connecting to API"
+            status = "error"
+            return status, message
+
+        else:
+
+            status = data['status']
+            message = data['message']
+
+            return status, message
+
 @login_required(login_url='login')
 def upload_video(request):
     form = None
@@ -64,7 +114,7 @@ def upload_video(request):
             s3_bucket = settings.S3_BUCKET_NAME
             s3_key = f"videos/{video.pk}.mp4"
             s3_url = f"https://{s3_bucket}.s3.{region}.amazonaws.com/{s3_key}"
-            video.s_three_url = s3_url
+            video.s_three_url = None
             video.celery_task_id = None
             video.status = "processing"
 
@@ -166,3 +216,60 @@ def download_video(request, pk):
 def test_video(request):
     send_test_request.delay()
     return redirect("video_index")
+
+@csrf_exempt
+@require_POST
+def video_complete_notification(request):
+
+    payload = {}
+    expected_api_key = settings.DJANGO_API_KEY
+    auth_header = request.headers.get("Authorization")
+
+    if not expected_api_key or not auth_header or not auth_header.startswith("Bearer "):
+        logger.warning("Missing or malformed Authorization header")
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+
+    token = auth_header.split(" ", 1)[1]
+    if token != expected_api_key:
+        logger.warning("Invalid API key")
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+
+    # Parse JSON payload
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except json.JSONDecodeError:
+        logger.error(f"Invalid JSON received, payload={payload}")
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    required_fields = ["video_id", "job_id", "status", "completed_at", "video_url", "error_message"]
+    if not all(field in payload for field in required_fields):
+        logger.error(f"Missing fields in payload: {payload}")
+        return JsonResponse({"error": "Missing fields"}, status=400)
+
+    logger.debug(payload)
+
+    # Extract values
+    video_id = payload["video_id"]
+    job_id = payload["job_id"]
+    status = payload["status"]
+    completed_at = payload["completed_at"]
+    video_url = payload["video_url"]
+    error_message = payload["error_message"]
+
+    video = Video.objects.get(pk=video_id)
+
+    video.status = status
+
+    if status == "completed":
+        video.s_three_url = video_url
+
+    if status == "error":
+        logger.error(error_message)
+
+    try:
+        video.save()
+    except Exception as e:
+        logger.error(e)
+        return JsonResponse({"error": "An error occurred"}, status=500)
+
+    return JsonResponse({"message": "Webhook processed"}, status=200)
