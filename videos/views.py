@@ -72,6 +72,26 @@ class VideoDetailView(LoginRequiredMixin, DetailView):
         context["status"] = kwargs.get("status", None)
         context["message"] = kwargs.get("message", None)
 
+
+        if self.object.status == "completed":
+
+            # 🔽 Add pre-signed video URL
+            s3 = get_s3_client()
+            if s3:
+                video = self.object
+                try:
+                    presigned_url = s3.generate_presigned_url(
+                        'get_object',
+                        Params={'Bucket': settings.S3_BUCKET_NAME, 'Key': f"videos/{video.pk}.mp4"},
+                        ExpiresIn=3600
+                    )
+                    context["video_url"] = presigned_url
+                except Exception as e:
+                    logger.error(f"Error generating S3 URL: {e}")
+                    context["video_url_error"] = "Could not load video."
+        else:
+            context["video_url"] = None
+
         return context
 
     def poll_video_status(self, video):
