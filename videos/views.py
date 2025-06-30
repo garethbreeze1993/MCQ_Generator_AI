@@ -89,6 +89,10 @@ class VideoDetailView(LoginRequiredMixin, DetailView):
                 except Exception as e:
                     logger.error(f"Error generating S3 URL: {e}")
                     context["video_url_error"] = "Could not load video."
+                    context["video_url"] = None
+            else:
+                context["video_url"] = None
+                context["video_url_error"] = "Could not load video."
         else:
             context["video_url"] = None
 
