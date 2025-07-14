@@ -1,3 +1,8 @@
 from django.contrib import admin
 
-# Register your models here.
+from library.models import LibChat, LibMessage, LibDocuments, LibDocumentEmbeddings
+
+admin.site.register(LibChat)
+admin.site.register(LibMessage)
+admin.site.register(LibDocuments)
+admin.site.register(LibDocumentEmbeddings)

@@ -1,6 +1,7 @@
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from videos.models import Video
+from videos.forms import VideoForm
 import requests
 
 from django.urls import reverse
@@ -202,3 +203,50 @@ class VideoTestCase(TestCase):
         self.assertEqual(response.context['status'], "error")
         self.assertEqual(response.context['message'], f"Error connecting to API")
         self.assertTemplateUsed(response, "videos/video_detail.html")
+
+    def test_authenticated_client_get_request_upload_video(self):
+        url = reverse("create_video")
+        response = self.authenticated_client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "videos/upload_video.html")
+        self.assertIsInstance(response.context['form'], VideoForm)
+
+    def test_unauthenticated_client_get_request_upload_video(self):
+        url = reverse("create_video")
+        response = self.unauthenticated_client.get(url)
+        self.assertEqual(response.status_code, 302)
+
+    @patch("videos.views.send_request_to_text_to_vid_api.delay_on_commit")
+    def test_authenticated_client_post_request_upload_video_success(self, celery_task_pch):
+        url = reverse("create_video")
+        prompt = "Test prompt"
+        title = "Test title for this test"
+        response = self.authenticated_client.post(url, data={"title": title, "prompt": prompt})
+        self.assertEqual(response.status_code, 302)
+        videos = Video.objects.filter(user=VideoTestCase.test_user)
+        self.assertEqual(videos.count(), 5)
+        video = videos.filter(title=title).first()
+        self.assertEqual(video.prompt, prompt)
+        self.assertEqual(video.status, "processing")
+        self.assertIsNone(video.celery_task_id)
+        self.assertIsNone(video.s_three_url)
+        celery_task_pch.assert_called_once()
+
+    @patch("videos.views.send_request_to_text_to_vid_api.delay_on_commit")
+    def test_authenticated_client_post_request_upload_video_form_not_valid(self, celery_task_pch):
+        url = reverse("create_video")
+        prompt = "Test prompt"
+        title = f"Video_title_{1}"
+        response = self.authenticated_client.post(url, data={"title": title, "prompt": prompt})
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "videos/upload_video.html")
+        celery_task_pch.assert_not_called()
+
+    @patch("videos.views.send_request_to_text_to_vid_api.delay_on_commit")
+    def test_unauthenticated_client_post_request_upload_video(self, celery_task_pch):
+        url = reverse("create_video")
+        prompt = "Test prompt"
+        title = "Test title for this test"
+        response = self.unauthenticated_client.post(url, data={"title": title, "prompt": prompt})
+        self.assertEqual(response.status_code, 302)
+        celery_task_pch.assert_not_called()
