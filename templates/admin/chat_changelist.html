@@ -1,0 +1,27 @@
+{% extends "admin/change_list.html" %}
+
+{% block content %}
+
+  <!-- 📊 Panel 1: Summary -->
+  <div class="module" style="margin-bottom: 30px;">
+    <h2>Chat Statistics</h2>
+    <div>
+      <p><strong>Total Chats:</strong> {{ total_chats }}</p>
+      <p><strong>Chats per User:</strong></p>
+      <ul>
+        {% for entry in chats_per_user %}
+          <li>{{ entry.user__username }} — {{ entry.count }}</li>
+        {% empty %}
+          <li>No Chats found.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <!-- 📋 Panel 2: Default Quiz List View -->
+  <div class="module">
+    <h2>All Chats</h2>
+    {{ block.super }}
+  </div>
+
+{% endblock %}
