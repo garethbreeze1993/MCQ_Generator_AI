@@ -3,15 +3,34 @@ from django.contrib.auth.models import User
 from videos.models import Video
 from videos.forms import VideoForm
 import requests
+from io import BytesIO
+import json
 
 from django.urls import reverse
+from django.http import FileResponse
+from django.conf import settings
 
 from unittest.mock import patch
 
+
+class ClientError(Exception):
+
+    def __init__(self, value=None):
+        self.value = value
+
+    def response(self):
+        if self.value:
+            return {'Error': {'Code': 'NoSuchKey'}}
+        else:
+            return {'Error': {'Code': 'Somthing else'}}
+
+
 class MockS3Client:
 
-    def __init__(self, raise_exception=False):
+    def __init__(self, raise_exception=False, generic_exception=False, value=False):
         self.raise_exception = raise_exception
+        self.generic_exception = generic_exception
+        self.value = value
 
     presigned_url = "http://fakes3url.aws.com"
 
@@ -19,6 +38,20 @@ class MockS3Client:
         if self.raise_exception:
             raise Exception
         return MockS3Client.presigned_url
+
+    def get_object(self, Bucket, Key):
+        if self.raise_exception:
+            if self.generic_exception:
+                raise Exception
+            else:
+                if self.value:
+                    raise ClientError(value=self.value)
+                else:
+                    raise ClientError
+
+        return {
+            'Body': BytesIO(b'test video content')
+        }
 
 
 class MockAPIResponse:
@@ -250,3 +283,247 @@ class VideoTestCase(TestCase):
         response = self.unauthenticated_client.post(url, data={"title": title, "prompt": prompt})
         self.assertEqual(response.status_code, 302)
         celery_task_pch.assert_not_called()
+
+    @patch("videos.views.delete_s3_file.delay_on_commit")
+    def test_lib_doc_delete_success_completed_vid(self, delete_video_func):
+        pk = 1
+        videos = Video.objects.filter(user=VideoTestCase.test_user)
+        videos_count = videos.count()
+        self.assertEqual(videos_count, 4)
+
+        video = videos.filter(pk=pk)
+        self.assertTrue(video.exists())
+
+        url = reverse("delete_video", args=[pk])
+
+        first_response = self.authenticated_client.get(url)
+        self.assertEqual(first_response.status_code, 200)
+        self.assertTemplateUsed(first_response, "videos/confirm_vid_delete.html")
+
+        second_response = self.authenticated_client.post(url)
+        self.assertEqual(second_response.status_code, 302)
+        redirect_url = reverse("video_index")
+        self.assertEqual(second_response.url, redirect_url)
+
+        videos_after = Video.objects.filter(user=VideoTestCase.test_user)
+        videos_after_count = videos_after.count()
+        self.assertEqual(videos_after_count, 3)
+
+        video_after = videos_after.filter(pk=pk)
+        self.assertFalse(video_after.exists())
+
+        delete_video_func.assert_called_with(video_id=pk)
+
+    @patch("videos.views.delete_s3_file.delay_on_commit")
+    def test_lib_doc_delete_success_not_completed_vid(self, delete_video_func):
+        pk = 2
+        videos = Video.objects.filter(user=VideoTestCase.test_user)
+        videos_count = videos.count()
+        self.assertEqual(videos_count, 4)
+
+        video = videos.filter(pk=pk)
+        self.assertTrue(video.exists())
+
+        url = reverse("delete_video", args=[pk])
+
+        first_response = self.authenticated_client.get(url)
+        self.assertEqual(first_response.status_code, 200)
+        self.assertTemplateUsed(first_response, "videos/confirm_vid_delete.html")
+
+        second_response = self.authenticated_client.post(url)
+        self.assertEqual(second_response.status_code, 302)
+        redirect_url = reverse("video_index")
+        self.assertEqual(second_response.url, redirect_url)
+
+        videos_after = Video.objects.filter(user=VideoTestCase.test_user)
+        videos_after_count = videos_after.count()
+        self.assertEqual(videos_after_count, 3)
+
+        video_after = videos_after.filter(pk=pk)
+        self.assertFalse(video_after.exists())
+
+        delete_video_func.assert_not_called()
+
+    @patch("videos.views.delete_s3_file.delay_on_commit")
+    def test_lib_doc_delete_wrong_user(self, delete_video_func):
+        pk = 2
+        videos = Video.objects.filter(user=VideoTestCase.test_user)
+        videos_count = videos.count()
+        self.assertEqual(videos_count, 4)
+
+        video = videos.filter(pk=pk)
+        self.assertTrue(video.exists())
+
+        url = reverse("delete_video", args=[pk])
+
+        first_response = self.random_client.get(url)
+        self.assertEqual(first_response.status_code, 404)
+        delete_video_func.assert_not_called()
+
+    @patch("videos.views.delete_s3_file.delay_on_commit")
+    def test_lib_doc_delete_unauthenticated_user(self, delete_video_func):
+        pk = 2
+        videos = Video.objects.filter(user=VideoTestCase.test_user)
+        videos_count = videos.count()
+        self.assertEqual(videos_count, 4)
+
+        video = videos.filter(pk=pk)
+        self.assertTrue(video.exists())
+
+        url = reverse("delete_video", args=[pk])
+
+        first_response = self.unauthenticated_client.get(url)
+        self.assertEqual(first_response.status_code, 404)
+        delete_video_func.assert_not_called()
+
+    @patch('videos.views.get_s3_client')
+    def test_download_video_success(self, mock_get_s3_client):
+        mock_get_s3_client.return_value = MockS3Client()
+        pk = 1
+        url = reverse("download_video", args=[pk])
+        response = self.authenticated_client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response, FileResponse)
+        self.assertEqual(response['Content-Disposition'], f'attachment; filename="{pk}.mp4"')
+        self.assertEqual(response.getvalue(), b'test video content')
+
+    @patch('videos.views.get_s3_client')
+    def test_download_video_raise_generic_exception(self, mock_get_s3_client):
+        mock_get_s3_client.return_value = MockS3Client(raise_exception=True, generic_exception=True)
+        pk = 1
+        url = reverse("download_video", args=[pk])
+        response = self.authenticated_client.get(url)
+        self.assertEqual(response.status_code, 302)
+        redirect_url = reverse("video_detail", args=[pk])
+        self.assertEqual(response.url, redirect_url)
+
+    @patch('videos.views.get_s3_client')
+    def test_download_video_raise_exception_nosuchkey(self, mock_get_s3_client):
+        mock_get_s3_client.return_value = MockS3Client(raise_exception=True, generic_exception=False, value=True)
+        pk = 1
+        url = reverse("download_video", args=[pk])
+        response = self.authenticated_client.get(url)
+        self.assertEqual(response.status_code, 302)
+        redirect_url = reverse("video_detail", args=[pk])
+        self.assertEqual(response.url, redirect_url)
+
+    @patch('videos.views.get_s3_client')
+    def test_download_video_raise_exception_other(self, mock_get_s3_client):
+        mock_get_s3_client.return_value = MockS3Client(raise_exception=True, generic_exception=False)
+        pk = 1
+        url = reverse("download_video", args=[pk])
+        response = self.authenticated_client.get(url)
+        self.assertEqual(response.status_code, 302)
+        redirect_url = reverse("video_detail", args=[pk])
+        self.assertEqual(response.url, redirect_url)
+
+    @patch('videos.views.get_s3_client')
+    def test_download_video_s3_client_none(self, mock_get_s3_client):
+        mock_get_s3_client.return_value = None
+        pk = 1
+        url = reverse("download_video", args=[pk])
+        response = self.authenticated_client.get(url)
+        self.assertEqual(response.status_code, 302)
+        redirect_url = reverse("video_detail", args=[pk])
+        self.assertEqual(response.url, redirect_url)
+
+    @patch('videos.views.get_s3_client')
+    def test_download_video_wrong_user(self, mock_get_s3_client):
+        mock_get_s3_client.return_value = MockS3Client()
+        pk = 1
+        url = reverse("download_video", args=[pk])
+        response = self.random_client.get(url)
+        self.assertEqual(response.status_code, 404)
+        mock_get_s3_client.assert_not_called()
+
+    @patch('videos.views.get_s3_client')
+    def test_download_video_unauthenticated_user(self, mock_get_s3_client):
+        mock_get_s3_client.return_value = MockS3Client()
+        pk = 1
+        url = reverse("download_video", args=[pk])
+        response = self.unauthenticated_client.get(url)
+        self.assertEqual(response.status_code, 302)
+        mock_get_s3_client.assert_not_called()
+
+    def test_video_complete_notification_success(self):
+
+        payload = {'video_id': 2, 'job_id': 'ce7744f9-a0ad-4339-bbcc-0cadfd79b26543', 'status': 'completed',
+                   'completed_at': '2025-06-26T17:59:07.389738', 'video_url': 'http://fakes3url.aws.com',
+                   'error_message': ""}
+
+        headers = {"Authorization": f"Bearer {settings.DJANGO_API_KEY}"}
+
+        url = reverse("video_complete_notification")
+
+        response = self.authenticated_client.post(url, data=payload, headers=headers, content_type='application/json')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(str(response.content, 'utf-8'))['message'], "Webhook processed")
+
+        video = Video.objects.get(pk=payload['video_id'])
+
+        self.assertEqual(video.status, "completed")
+        self.assertEqual(video.s_three_url, payload['video_url'])
+
+    def test_video_complete_notification_some_fields_not_in_payload(self):
+
+        payload = {'video_id': 2, 'job_id': 'ce7744f9-a0ad-4339-bbcc-0cadfd79b26543', 'status': 'completed',
+                   'completed_at': '2025-06-26T17:59:07.389738', 'video_url': 'http://fakes3url.aws.com'}
+
+        headers = {"Authorization": f"Bearer {settings.DJANGO_API_KEY}"}
+
+        url = reverse("video_complete_notification")
+
+        response = self.authenticated_client.post(url, data=payload, headers=headers, content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(json.loads(str(response.content, 'utf-8'))['error'], "Missing fields")
+
+    def test_video_complete_invalid_json(self):
+
+        payload = b"{invalid_json",
+
+        headers = {"Authorization": f"Bearer {settings.DJANGO_API_KEY}"}
+
+        url = reverse("video_complete_notification")
+
+        response = self.client.generic(
+            method='POST',
+            path=url,
+            data=payload,  # malformed bytes
+            content_type='application/json',
+            headers=headers
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(json.loads(str(response.content, 'utf-8'))['error'], "Invalid JSON")
+
+    def test_video_complete_notification_wrong_api_key(self):
+
+        payload = {'video_id': 2, 'job_id': 'ce7744f9-a0ad-4339-bbcc-0cadfd79b26543', 'status': 'completed',
+                   'completed_at': '2025-06-26T17:59:07.389738', 'video_url': 'http://fakes3url.aws.com',
+                   'error_message': ""}
+
+        headers = {"Authorization": f"Bearer random_api_key"}
+
+        url = reverse("video_complete_notification")
+
+        response = self.authenticated_client.post(url, data=payload, headers=headers, content_type='application/json')
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(json.loads(str(response.content, 'utf-8'))['error'], "Unauthorized")
+
+    def test_video_complete_notification_no_api_key(self):
+
+        payload = {'video_id': 2, 'job_id': 'ce7744f9-a0ad-4339-bbcc-0cadfd79b26543', 'status': 'completed',
+                   'completed_at': '2025-06-26T17:59:07.389738', 'video_url': 'http://fakes3url.aws.com',
+                   'error_message': ""}
+
+        headers = {}
+
+        url = reverse("video_complete_notification")
+
+        response = self.authenticated_client.post(url, data=payload, headers=headers, content_type='application/json')
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(json.loads(str(response.content, 'utf-8'))['error'], "Unauthorized")
