@@ -32,7 +32,10 @@ def delete_s3_file(video_id: int):
 
 @shared_task(bind=True)
 def send_request_to_text_to_vid_api(self, video_id: int, prompt: str):
+
     status_msg = "uploaded"
+    json_resp_err = False
+
     try:
         # Step 1: Submit job to FastAPI
         response = requests.post(
@@ -54,6 +57,7 @@ def send_request_to_text_to_vid_api(self, video_id: int, prompt: str):
         else:
             logger.error(data)
             status_msg = "error"
+            json_resp_err = True
 
     except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
         status_msg = "error"
@@ -64,7 +68,10 @@ def send_request_to_text_to_vid_api(self, video_id: int, prompt: str):
         raise e
 
     else:
-        return "Successfully sent to FASTAPI"
+        if not json_resp_err:
+            return "Successfully sent to FASTAPI"
+        else:
+            return "Error when sent to FASTAPI"
 
     finally:
         video = Video.objects.get(pk=video_id)

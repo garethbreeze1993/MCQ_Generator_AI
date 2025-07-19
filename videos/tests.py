@@ -2,6 +2,9 @@ from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from videos.models import Video
 from videos.forms import VideoForm
+from videos.validators import validate_prompt_token_length
+from videos.utils import get_s3_client
+from videos.tasks import delete_s3_file, send_request_to_text_to_vid_api
 import requests
 from io import BytesIO
 import json
@@ -9,13 +12,30 @@ import json
 from django.urls import reverse
 from django.http import FileResponse
 from django.conf import settings
+from django.core.exceptions import ValidationError
 
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
+
+random_prompt_text = """
+In the bustling heart of the city, where towering skyscrapers cast long shadows over narrow alleyways and the air 
+vibrates with the hum of relentless activity, there exists a hidden bookstore known only to a few. 
+Tucked between a vintage tailor shop and an aging café that still serves coffee the old-fashioned way, 
+this bookstore—called The Gilded Page—holds treasures untold. Its wooden shelves are worn smooth by generations of 
+readers, and the scent of parchment, ink, and leather fills the air. Those who enter often lose track of time, 
+wandering through rows of ancient tomes, forgotten manuscripts, and hand-annotated editions of classics. 
+The owner, a silver-haired woman named Eloise, seems to possess an uncanny ability to recommend the perfect 
+book for each visitor—whether it’s a poetry collection for the heartbroken, a dusty science manual for the 
+endlessly curious, or a journal that records dreams instead of memories. Rumors abound that the store itself is 
+enchanted—that books rearrange themselves when no one is looking, that characters step off the page when the moon is 
+full, and that once, long ago, a reader stepped through a portal in the back room and never returned. Whether those 
+tales are true or just literary folklore is impossible to confirm, but every so often, a curious reader vanishes 
+from the city, leaving only a library card and an open book behind.
+"""
 
 
 class ClientError(Exception):
 
-    def __init__(self, value=None):
+    def __init__(self, value=None, *args, **kwargs):
         self.value = value
 
     def response(self):
@@ -527,3 +547,192 @@ class VideoTestCase(TestCase):
 
         self.assertEqual(response.status_code, 401)
         self.assertEqual(json.loads(str(response.content, 'utf-8'))['error'], "Unauthorized")
+
+    @patch('videos.tasks.settings')
+    @patch('videos.tasks.requests.post')
+    def test_successful_text_to_vid_api_call_sets_processing_status(self, mock_post, mock_settings):
+        mock_settings.VIDEOAPI_BASE_URL = "http://fakeapi.com"
+        mock_response = MagicMock()
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.return_value = {
+            "message": "Video generation started. Use the job_id to check status."
+        }
+        mock_post.return_value = mock_response
+
+        video = Video.objects.get(pk=4)
+        self.assertEqual(video.status, "uploaded")
+
+        result = send_request_to_text_to_vid_api(video_id=video.pk, prompt=video.prompt)
+
+        self.assertEqual(result, "Successfully sent to FASTAPI")
+        video_after = Video.objects.get(pk=4)
+        self.assertEqual(video_after.status, "processing")
+
+    @patch('videos.tasks.settings')
+    @patch('videos.tasks.requests.post')
+    def test_successful_text_to_vid_api_call_raise_exception(self, mock_post, mock_settings):
+        mock_settings.VIDEOAPI_BASE_URL = "http://fakeapi.com"
+        mock_response = MagicMock()
+        mock_response.raise_for_status.side_effect = TypeError
+        mock_response.json.return_value = {
+        }
+        mock_post.return_value = mock_response
+
+        video = Video.objects.get(pk=4)
+        self.assertEqual(video.status, "uploaded")
+
+        with self.assertRaises(TypeError):
+            send_request_to_text_to_vid_api(video_id=video.pk, prompt=video.prompt)
+            video_after = Video.objects.get(pk=4)
+            self.assertEqual(video_after.status, "error")
+
+    @patch('videos.tasks.settings')
+    @patch('videos.tasks.requests.post')
+    def test_successful_text_to_vid_api_call_raise_requests_exception(self, mock_post, mock_settings):
+        mock_settings.VIDEOAPI_BASE_URL = "http://fakeapi.com"
+        mock_response = MagicMock()
+        mock_response.raise_for_status.side_effect = requests.exceptions.RequestException
+        mock_response.json.return_value = {
+        }
+        mock_post.return_value = mock_response
+
+        video = Video.objects.get(pk=4)
+        self.assertEqual(video.status, "uploaded")
+
+        with self.assertRaises(requests.exceptions.RequestException):
+            send_request_to_text_to_vid_api(video_id=video.pk, prompt=video.prompt)
+            video_after = Video.objects.get(pk=4)
+            self.assertEqual(video_after.status, "error")
+
+    @patch('videos.tasks.settings')
+    @patch('videos.tasks.requests.post')
+    def test_successful_text_to_vid_api_call_wrong_json_resp(self, mock_post, mock_settings):
+        mock_settings.VIDEOAPI_BASE_URL = "http://fakeapi.com"
+        mock_response = MagicMock()
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.return_value = {
+            "message": "Other error status"
+        }
+        mock_post.return_value = mock_response
+
+        video = Video.objects.get(pk=4)
+        self.assertEqual(video.status, "uploaded")
+
+        result = send_request_to_text_to_vid_api(video_id=video.pk, prompt=video.prompt)
+
+        self.assertEqual(result, "Error when sent to FASTAPI")
+        video_after = Video.objects.get(pk=4)
+        self.assertEqual(video_after.status, "error")
+
+
+class VideoHelpersTestCase(TestCase):
+
+    def test_raises_validation_error_validators_func(self):
+        with self.assertRaises(ValidationError) as context:
+            validate_prompt_token_length(random_prompt_text)
+
+    def test_does_not_raise_validation_error_for_valid_prompt(self):
+        valid_prompt = "This is a short prompt that should be under the token limit."
+
+        try:
+            validate_prompt_token_length(valid_prompt)
+        except ValidationError:
+            self.fail("validate_prompt_token_length() raised ValidationError unexpectedly!")
+
+    @patch('videos.utils.settings')
+    @patch('videos.utils.boto3.client')
+    def test_s3_client_production_environment_uses_default_credentials(self, mock_boto_client, mock_settings):
+        mock_settings.DJANGO_ENV = "PRODUCTION"
+        mock_settings.AWS_REGION = "us-east-1"
+
+        mock_client_instance = MagicMock()
+        mock_boto_client.return_value = mock_client_instance
+
+        client = get_s3_client()
+        mock_boto_client.assert_called_once_with('s3', region_name="us-east-1")
+        self.assertEqual(client, mock_client_instance)
+
+    @patch('videos.utils.settings')
+    @patch('videos.utils.boto3.client')
+    def test_s3_client_development_environment_uses_explicit_credentials(self, mock_boto_client, mock_settings):
+        mock_settings.DJANGO_ENV = "DEVELOPMENT"
+        mock_settings.AWS_REGION = "us-west-2"
+        mock_settings.AWS_ACCESS_KEY = "FAKEKEY"
+        mock_settings.AWS_SECRET_ACCESS_KEY = "FAKESECRET"
+
+        mock_client_instance = MagicMock()
+        mock_boto_client.return_value = mock_client_instance
+
+        client = get_s3_client()
+        mock_boto_client.assert_called_once_with(
+            's3',
+            aws_access_key_id="FAKEKEY",
+            aws_secret_access_key="FAKESECRET",
+            region_name="us-west-2"
+        )
+        self.assertEqual(client, mock_client_instance)
+
+    @patch('videos.utils.settings')
+    @patch('videos.utils.boto3.client', side_effect=Exception("S3 failure"))
+    def test_s3_client_returns_none_on_exception(self, mock_boto_client, mock_settings):
+        mock_settings.DJANGO_ENV = "DEVELOPMENT"
+        mock_settings.AWS_REGION = "eu-west-1"
+        mock_settings.AWS_ACCESS_KEY = "INVALID"
+        mock_settings.AWS_SECRET_ACCESS_KEY = "INVALID"
+
+        client = get_s3_client()
+        self.assertIsNone(client)
+
+    @patch('videos.tasks.get_s3_client', return_value=None)
+    def test_raises_exception_when_s3_client_is_none(self, mock_get_client):
+        with self.assertRaises(Exception) as context:
+            delete_s3_file(123)
+        self.assertIn("S3 Client not initialized", str(context.exception))
+
+    @patch('videos.tasks.get_s3_client')
+    @patch('videos.tasks.settings')
+    def test_successful_delete_s3_returns_true(self, mock_settings, mock_get_client):
+        mock_settings.S3_BUCKET_NAME = "test-bucket"
+
+        mock_s3 = MagicMock()
+        mock_get_client.return_value = mock_s3
+
+        # Simulate successful delete
+        mock_s3.delete_object.return_value = {}
+
+        result = delete_s3_file(456)
+        mock_s3.delete_object.assert_called_once_with(
+            Bucket="test-bucket",
+            Key="videos/456.mp4"
+        )
+        self.assertTrue(result)
+
+    @patch('videos.tasks.get_s3_client')
+    @patch('videos.tasks.settings')
+    def test_raises_client_error_on_delete_s3(self, mock_settings, mock_get_client):
+        mock_settings.S3_BUCKET_NAME = "test-bucket"
+
+        mock_s3 = MagicMock()
+        mock_get_client.return_value = mock_s3
+
+        mock_s3.delete_object.side_effect = ClientError(
+            {"Error": {"Code": "NoSuchKey", "Message": "The specified key does not exist."}},
+            "DeleteObject"
+        )
+
+        with self.assertRaises(ClientError):
+            delete_s3_file(789)
+
+    @patch('videos.tasks.get_s3_client')
+    @patch('videos.tasks.settings')
+    def test_raises_unexpected_exception_on_delete_s3(self, mock_settings, mock_get_client):
+        mock_settings.S3_BUCKET_NAME = "test-bucket"
+
+        mock_s3 = MagicMock()
+        mock_get_client.return_value = mock_s3
+
+        mock_s3.delete_object.side_effect = Exception("Some random error")
+
+        with self.assertRaises(Exception) as context:
+            delete_s3_file(101)
+        self.assertIn("Some random error", str(context.exception))
