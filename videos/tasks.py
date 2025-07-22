@@ -5,6 +5,7 @@ from botocore.exceptions import ClientError
 from django.http import JsonResponse
 from django.conf import settings
 from celery import shared_task
+from celery.exceptions import Retry
 
 from videos.utils import get_s3_client
 
@@ -37,6 +38,14 @@ def send_request_to_text_to_vid_api(self, video_id: int, prompt: str):
     json_resp_err = False
 
     try:
+
+        processing_vid_count = Video.objects.filter(status="processing").count()
+
+        if processing_vid_count > 4:
+            # Delay the sending of task if more than 4 videos processing this can be modified later
+            raise self.retry(video_id=video_id, prompt=prompt, countdown=120)
+
+
         # Step 1: Submit job to FastAPI
         response = requests.post(
             f"{settings.VIDEOAPI_BASE_URL}/generate",
@@ -61,6 +70,9 @@ def send_request_to_text_to_vid_api(self, video_id: int, prompt: str):
 
     except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
         status_msg = "error"
+        raise e
+
+    except Retry as e:
         raise e
 
     except Exception as e:

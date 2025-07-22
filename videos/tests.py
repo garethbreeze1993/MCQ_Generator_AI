@@ -280,7 +280,7 @@ class VideoTestCase(TestCase):
         self.assertEqual(videos.count(), 5)
         video = videos.filter(title=title).first()
         self.assertEqual(video.prompt, prompt)
-        self.assertEqual(video.status, "processing")
+        self.assertEqual(video.status, "uploaded")
         self.assertIsNone(video.celery_task_id)
         self.assertIsNone(video.s_three_url)
         celery_task_pch.assert_called_once()
