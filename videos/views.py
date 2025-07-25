@@ -20,7 +20,7 @@ import json
 import requests
 
 from videos.forms import VideoForm
-from videos.tasks import delete_s3_file, send_request_to_text_to_vid_api, send_test_request
+from videos.tasks import delete_s3_file, send_request_to_text_to_vid_api, send_test_request, retry_failed_fastapi_jobs
 from videos.utils import get_s3_client
 
 from django.contrib import messages
@@ -297,3 +297,18 @@ def video_complete_notification(request):
         return JsonResponse({"error": "An error occurred"}, status=500)
 
     return JsonResponse({"message": "Webhook processed"}, status=200)
+
+@csrf_exempt
+@require_POST
+def fastapi_status_view(request):
+    try:
+        data = json.loads(request.body)
+        status = data.get("status")
+        if status == "on":
+            retry_failed_fastapi_jobs.delay()
+            return JsonResponse({"message": "Status updated"}, status=200)
+        else:
+            logger.error("Error occured when notifying django that fastapi is on")
+            return JsonResponse({"error": "An error occurred"}, status=500)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)

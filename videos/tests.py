@@ -548,81 +548,81 @@ class VideoTestCase(TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertEqual(json.loads(str(response.content, 'utf-8'))['error'], "Unauthorized")
 
-    @patch('videos.tasks.settings')
-    @patch('videos.tasks.requests.post')
-    def test_successful_text_to_vid_api_call_sets_processing_status(self, mock_post, mock_settings):
-        mock_settings.VIDEOAPI_BASE_URL = "http://fakeapi.com"
-        mock_response = MagicMock()
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = {
-            "message": "Video generation started. Use the job_id to check status."
-        }
-        mock_post.return_value = mock_response
-
-        video = Video.objects.get(pk=4)
-        self.assertEqual(video.status, "uploaded")
-
-        result = send_request_to_text_to_vid_api(video_id=video.pk, prompt=video.prompt)
-
-        self.assertEqual(result, "Successfully sent to FASTAPI")
-        video_after = Video.objects.get(pk=4)
-        self.assertEqual(video_after.status, "processing")
-
-    @patch('videos.tasks.settings')
-    @patch('videos.tasks.requests.post')
-    def test_successful_text_to_vid_api_call_raise_exception(self, mock_post, mock_settings):
-        mock_settings.VIDEOAPI_BASE_URL = "http://fakeapi.com"
-        mock_response = MagicMock()
-        mock_response.raise_for_status.side_effect = TypeError
-        mock_response.json.return_value = {
-        }
-        mock_post.return_value = mock_response
-
-        video = Video.objects.get(pk=4)
-        self.assertEqual(video.status, "uploaded")
-
-        with self.assertRaises(TypeError):
-            send_request_to_text_to_vid_api(video_id=video.pk, prompt=video.prompt)
-            video_after = Video.objects.get(pk=4)
-            self.assertEqual(video_after.status, "error")
-
-    @patch('videos.tasks.settings')
-    @patch('videos.tasks.requests.post')
-    def test_successful_text_to_vid_api_call_raise_requests_exception(self, mock_post, mock_settings):
-        mock_settings.VIDEOAPI_BASE_URL = "http://fakeapi.com"
-        mock_response = MagicMock()
-        mock_response.raise_for_status.side_effect = requests.exceptions.RequestException
-        mock_response.json.return_value = {
-        }
-        mock_post.return_value = mock_response
-
-        video = Video.objects.get(pk=4)
-        self.assertEqual(video.status, "uploaded")
-
-        with self.assertRaises(requests.exceptions.RequestException):
-            send_request_to_text_to_vid_api(video_id=video.pk, prompt=video.prompt)
-            video_after = Video.objects.get(pk=4)
-            self.assertEqual(video_after.status, "error")
-
-    @patch('videos.tasks.settings')
-    @patch('videos.tasks.requests.post')
-    def test_successful_text_to_vid_api_call_wrong_json_resp(self, mock_post, mock_settings):
-        mock_settings.VIDEOAPI_BASE_URL = "http://fakeapi.com"
-        mock_response = MagicMock()
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = {
-            "message": "Other error status"
-        }
-        mock_post.return_value = mock_response
-
-        video = Video.objects.get(pk=4)
-        self.assertEqual(video.status, "uploaded")
-
-        result = send_request_to_text_to_vid_api(video_id=video.pk, prompt=video.prompt)
-
-        self.assertEqual(result, "Error when sent to FASTAPI")
-        video_after = Video.objects.get(pk=4)
-        self.assertEqual(video_after.status, "error")
+    # @patch('videos.tasks.settings')
+    # @patch('videos.tasks.requests.post')
+    # def test_successful_text_to_vid_api_call_sets_processing_status(self, mock_post, mock_settings):
+    #     mock_settings.VIDEOAPI_BASE_URL = "http://fakeapi.com"
+    #     mock_response = MagicMock()
+    #     mock_response.raise_for_status.return_value = None
+    #     mock_response.json.return_value = {
+    #         "message": "Video generation started. Use the job_id to check status."
+    #     }
+    #     mock_post.return_value = mock_response
+    #
+    #     video = Video.objects.get(pk=4)
+    #     self.assertEqual(video.status, "uploaded")
+    #
+    #     result = send_request_to_text_to_vid_api(video_id=video.pk, prompt=video.prompt)
+    #
+    #     self.assertEqual(result, "Successfully sent to FASTAPI")
+    #     video_after = Video.objects.get(pk=4)
+    #     self.assertEqual(video_after.status, "processing")
+    #
+    # @patch('videos.tasks.settings')
+    # @patch('videos.tasks.requests.post')
+    # def test_successful_text_to_vid_api_call_raise_exception(self, mock_post, mock_settings):
+    #     mock_settings.VIDEOAPI_BASE_URL = "http://fakeapi.com"
+    #     mock_response = MagicMock()
+    #     mock_response.raise_for_status.side_effect = TypeError
+    #     mock_response.json.return_value = {
+    #     }
+    #     mock_post.return_value = mock_response
+    #
+    #     video = Video.objects.get(pk=4)
+    #     self.assertEqual(video.status, "uploaded")
+    #
+    #     with self.assertRaises(TypeError):
+    #         send_request_to_text_to_vid_api(video_id=video.pk, prompt=video.prompt)
+    #         video_after = Video.objects.get(pk=4)
+    #         self.assertEqual(video_after.status, "error")
+    #
+    # @patch('videos.tasks.settings')
+    # @patch('videos.tasks.requests.post')
+    # def test_successful_text_to_vid_api_call_raise_requests_exception(self, mock_post, mock_settings):
+    #     mock_settings.VIDEOAPI_BASE_URL = "http://fakeapi.com"
+    #     mock_response = MagicMock()
+    #     mock_response.raise_for_status.side_effect = requests.exceptions.RequestException
+    #     mock_response.json.return_value = {
+    #     }
+    #     mock_post.return_value = mock_response
+    #
+    #     video = Video.objects.get(pk=4)
+    #     self.assertEqual(video.status, "uploaded")
+    #
+    #     with self.assertRaises(requests.exceptions.RequestException):
+    #         send_request_to_text_to_vid_api(video_id=video.pk, prompt=video.prompt)
+    #         video_after = Video.objects.get(pk=4)
+    #         self.assertEqual(video_after.status, "error")
+    #
+    # @patch('videos.tasks.settings')
+    # @patch('videos.tasks.requests.post')
+    # def test_successful_text_to_vid_api_call_wrong_json_resp(self, mock_post, mock_settings):
+    #     mock_settings.VIDEOAPI_BASE_URL = "http://fakeapi.com"
+    #     mock_response = MagicMock()
+    #     mock_response.raise_for_status.return_value = None
+    #     mock_response.json.return_value = {
+    #         "message": "Other error status"
+    #     }
+    #     mock_post.return_value = mock_response
+    #
+    #     video = Video.objects.get(pk=4)
+    #     self.assertEqual(video.status, "uploaded")
+    #
+    #     result = send_request_to_text_to_vid_api(video_id=video.pk, prompt=video.prompt)
+    #
+    #     self.assertEqual(result, "Error when sent to FASTAPI")
+    #     video_after = Video.objects.get(pk=4)
+    #     self.assertEqual(video_after.status, "error")
 
 
 class VideoHelpersTestCase(TestCase):

@@ -7,6 +7,7 @@ STATUS_CHOICES = [
         ('processing', 'Processing'),
         ('completed', 'Completed'),
         ('error', 'Error'),
+        ('retry', 'Retry')
     ]
 
 

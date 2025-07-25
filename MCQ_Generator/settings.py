@@ -186,3 +186,8 @@ VIDEOAPI_BASE_URL = env('VIDEOAPI_BASE_URL')
 
 DJANGO_ENV = env('DJANGO_ENV')
 DJANGO_API_KEY = env("DJANGO_API_KEY")
+
+DEFAULT_FROM_EMAIL = 'noreply@example.com'
+
+# Development only
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

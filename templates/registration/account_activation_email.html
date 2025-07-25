@@ -1,0 +1,7 @@
+Hi {{ user.username }},
+
+Please confirm your registration by clicking the link below:
+
+http://{{ domain }}{% url 'activate' uidb64=uid token=token %}
+
+Thanks!

@@ -12,6 +12,7 @@ from videos.utils import get_s3_client
 import logging
 
 from videos.models import Video
+from videos.decorators import mark_video_for_retry_if_fastapi_down
 
 logger = logging.getLogger("django_mcq")
 
@@ -32,6 +33,7 @@ def delete_s3_file(video_id: int):
         return True
 
 @shared_task(bind=True)
+@mark_video_for_retry_if_fastapi_down
 def send_request_to_text_to_vid_api(self, video_id: int, prompt: str):
 
     status_msg = "uploaded"
@@ -111,4 +113,10 @@ def send_test_request():
     else:
         return "Successfully sent to FASTAPI TEST"
 
+
+@shared_task
+def retry_failed_fastapi_jobs():
+    retry_videos = Video.objects.filter(status="retry")
+    for video in retry_videos:
+        send_request_to_text_to_vid_api.delay(video.id, video.prompt)
 
