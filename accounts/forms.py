@@ -19,18 +19,14 @@ class SignUpForm(UserCreationForm):
         return user
 
 
-class EmailAuthenticationForm(AuthenticationForm):
-
-    username = forms.EmailField(
-        label="Email",
-        max_length=254,
-        widget=forms.EmailInput(attrs={"autofocus": True, 'placeholder': 'Enter your email'})
-    )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['username'].label = "Email"
-
+class CustomAuthenticationForm(AuthenticationForm):
     def confirm_login_allowed(self, user):
         if not user.is_active:
-            raise forms.ValidationError("This account is inactive.", code='inactive')
+            raise forms.ValidationError(
+                "Your account is inactive. Please contact support.",
+                code='inactive',
+            )
+
+
+class ResendActivationEmailForm(forms.Form):
+    email = forms.EmailField()

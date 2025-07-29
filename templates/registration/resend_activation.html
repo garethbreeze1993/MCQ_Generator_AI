@@ -1,0 +1,20 @@
+<!-- templates/registration/resend_activation.html -->
+{% extends "base.html" %}
+{% block content %}
+    <nav>
+    <ul>
+        <li><a href="{% url 'login' %}">Log In</a></li>
+        <li><a href="{% url 'signup' %}">Sign Up</a></li>
+    </ul>
+    </nav>
+    <div class="container">
+    <div class="form-group">
+  <h2>Resend Activation Email</h2>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Send</button>
+  </form>
+    </div>
+    </div>
+{% endblock %}

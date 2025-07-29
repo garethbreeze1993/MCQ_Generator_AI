@@ -191,3 +191,11 @@ DEFAULT_FROM_EMAIL = 'noreply@example.com'
 
 # Development only
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+PASSWORD_RESET_TIMEOUT = 60 * 60 * 24  # 1 day in seconds
+
+AUTHENTICATION_BACKENDS = [
+    'accounts.backends.CustomBackend'
+]
+
+# 'django.contrib.auth.backends.ModelBackend',  # fallback for above

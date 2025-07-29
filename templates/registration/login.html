@@ -14,8 +14,49 @@
     <div class="form-group">
         <h2>Log In</h2>
         <form method="post">
-        {% csrf_token %}
-        {{ form }}
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="errorlist">
+                {% for error in form.non_field_errors %}
+                    <p style="color: red;">{{ error }}</p>
+                    
+                {% endfor %}
+                </div>
+                
+                {% for error in form.non_field_errors %}
+                    {% if "inactive" in error|lower %}
+                        <p>Didn't receive an activation email? <a href="{% url 'resend_activation' %}">Resend it</a>.</p>
+                    {% endif %}
+                {% endfor %}
+
+            {% endif %}
+        <div>
+            <label for="id_username">Username/Email:</label>
+            <input type="text" name="username" autofocus="" autocapitalize="none" autocomplete="username" maxlength="150" required="" id="id_username">
+            {% if form.username.errors %}
+                <div class="errorlist">
+                    {% for error in form.username.errors %}
+                        <p style="color: red;">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div>
+            <label for="id_password">Password:</label>
+            <input type="password" name="password" autocomplete="current-password" required="" id="id_password">
+            {% if form.password.errors %}
+                <div class="errorlist">
+                    {% for error in form.password.errors %}
+                        <p style="color: red;">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <p><a href="{% url 'password_reset' %}">Forgot your password?</a></p>
+
+        
         <button class="btn_copy_login" type="submit">Log In</button>
         </form>
     </div>
