@@ -28,6 +28,12 @@ jobs:
       AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
       VIDEOAPI_BASE_URL: ${{ secrets.VIDEOAPI_BASE_URL }}
       DJANGO_API_KEY: ${{ secrets.DJANGO_API_KEY }}
+      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      AWS_SES_REGION_ENDPOINT: ${{ secrets.AWS_SES_REGION_ENDPOINT }}
+      EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
+      DEFAULT_FROM_EMAIL: ${{ secrets.DEFAULT_FROM_EMAIL }}
+      EMAIL_PORT: ${{ secrets.EMAIL_PORT }}
 
     steps:
       - name: Pulling git repo

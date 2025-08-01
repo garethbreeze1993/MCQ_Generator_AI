@@ -3,6 +3,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.urls import reverse_lazy
 from django.views.generic import CreateView
 from accounts.forms import SignUpForm, ResendActivationEmailForm
+from accounts.tasks import send_ses_email
 from django.contrib.auth import authenticate, login
 from django.contrib.sites.shortcuts import get_current_site
 from django.utils.http import urlsafe_base64_encode
@@ -43,13 +44,24 @@ class SignUpView(CreateView):
 
         current_site = get_current_site(self.request)
         subject = "Activate Your Account"
-        message = render_to_string("registration/account_activation_email.html", {
+        html_message = render_to_string("registration/account_activation_email.html", {
             "user": user,
             "domain": current_site.domain,
             "uid": urlsafe_base64_encode(force_bytes(user.pk)),
             "token": account_activation_token.make_token(user),
         })
-        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email])
+
+        text_message = render_to_string("registration/account_activation_email.txt", {
+            "user": user,
+            "domain": current_site.domain,
+            "uid": urlsafe_base64_encode(force_bytes(user.pk)),
+            "token": account_activation_token.make_token(user),
+        })
+
+        send_ses_email.delay(to_email=[user.email], from_email=settings.DEFAULT_FROM_EMAIL, body_text=text_message,
+                       body_html=html_message, subject=subject)
+
+        # send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email])
 
         return super().form_valid(form)
 
@@ -81,13 +93,22 @@ class ResendActivationEmailView(FormView):
             if not user.is_active:
                 current_site = get_current_site(self.request)
                 subject = 'Activate Your Account'
-                message = render_to_string('registration/account_activation_email.html', {
+                html_message = render_to_string('registration/account_activation_email.html', {
                     'user': user,
                     'domain': current_site.domain,
                     'uid': urlsafe_base64_encode(force_bytes(user.pk)),
                     'token': account_activation_token.make_token(user),
                 })
-                send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email])
+
+                text_message = render_to_string("registration/account_activation_email.txt", {
+                    "user": user,
+                    "domain": current_site.domain,
+                    "uid": urlsafe_base64_encode(force_bytes(user.pk)),
+                    "token": account_activation_token.make_token(user),
+                })
+
+                send_ses_email.delay(to_email=[user.email], from_email=settings.DEFAULT_FROM_EMAIL,
+                                     body_text=text_message, body_html=html_message, subject=subject)
                 messages.success(self.request, 'A new activation link has been sent to your email.')
             else:
                 messages.info(self.request, 'This account is already active.')

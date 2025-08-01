@@ -11,6 +11,13 @@
     </ul>
     </nav>
     <div class="container">
+    {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <li class="{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
     <div class="form-group">
         <h2>Log In</h2>
         <form method="post">

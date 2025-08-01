@@ -187,10 +187,20 @@ VIDEOAPI_BASE_URL = env('VIDEOAPI_BASE_URL')
 DJANGO_ENV = env('DJANGO_ENV')
 DJANGO_API_KEY = env("DJANGO_API_KEY")
 
-DEFAULT_FROM_EMAIL = 'noreply@example.com'
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
 
-# Development only
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+EMAIL_HOST = env("EMAIL_HOST")
+EMAIL_PORT = env("EMAIL_PORT")
+EMAIL_USE_TLS = True
+
+EMAIL_HOST_USER = env('SMTP_USERNAME')
+EMAIL_HOST_PASSWORD = env('SMTP_PASSWORD')
+
+
+AWS_SES_REGION_NAME = env('AWS_REGION')
+AWS_SES_REGION_ENDPOINT = env("AWS_SES_REGION_ENDPOINT")
 
 PASSWORD_RESET_TIMEOUT = 60 * 60 * 24  # 1 day in seconds
 
