@@ -1,13 +1,9 @@
-<!-- templates/home.html -->
-{% extends "base.html" %}
-
-{% block title %}MCQ Generator{% endblock %}
+{% extends "home.html" %}
 
 {% block content %}
-    
-{% if user.is_authenticated %}
-    <nav>
-        <ul>
+    {% if user.is_authenticated %}
+        <nav>
+    <ul>
             <li>Hi {{ user.username }}!</li>
             <li><a href="/">Home</a></li>
             <li><a href="{% url 'index' %}">Quizzes</a></li>
@@ -18,29 +14,30 @@
             <li><form action="{% url 'logout' %}" method="post">
                 {% csrf_token %}
                 <button type="submit">Log Out</button></form></li>
-        </ul>
-    </nav>
-    <div class="container">
-    {% if messages %}
-    <ul class="messages">
-        {% for message in messages %}
-            <li class="{{ message.tags }}">{{ message }}</li>
-        {% endfor %}
     </ul>
-{% endif %}
-   
-    
-    {% block app_content %}
-    {% endblock %}
-   </div>
-{% else %}
+    </nav>
+        {% else %}
     <nav>
     <ul>
-<li>You are not logged in</li>
         <li><a href="{% url 'login' %}">Log In</a></li>
         <li><a href="{% url 'signup' %}">Sign Up</a></li>
-        <li><a href="{% url 'contact' %}">Contact Us</a></li>
     </ul>
     </nav>
+    {% endif %}
+<div class="container">
+<h2>Contact Us</h2>
+
+{% if success %}
+  <p>Thanks for your message! We'll get back to you soon.</p>
+{% else %}
+  <form method="post">
+    {% csrf_token %}
+      
+          <div class="form-group">
+    {{ form.as_p }}
+    <button class="btn_copy_login" type="submit">Send</button>
+          </div>
+  </form>
+    </div>
 {% endif %}
 {% endblock %}

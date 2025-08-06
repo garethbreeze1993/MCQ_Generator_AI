@@ -208,4 +208,6 @@ AUTHENTICATION_BACKENDS = [
     'accounts.backends.CustomBackend'
 ]
 
+CONTACT_FORM_RECIPIENT = env('CONTACT_FORM_RECIPIENT')
+
 # 'django.contrib.auth.backends.ModelBackend',  # fallback for above
