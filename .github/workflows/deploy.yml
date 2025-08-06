@@ -34,7 +34,7 @@ jobs:
       EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
       DEFAULT_FROM_EMAIL: ${{ secrets.DEFAULT_FROM_EMAIL }}
       EMAIL_PORT: ${{ secrets.EMAIL_PORT }}
-      CONTACT_FORM_RECIPIENT: ${{ settings.CONTACT_FORM_RECIPIENT }}
+      CONTACT_FORM_RECIPIENT: ${{ secrets.CONTACT_FORM_RECIPIENT }}
 
     steps:
       - name: Pulling git repo
