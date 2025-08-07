@@ -548,11 +548,12 @@ class VideoTestCase(TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertEqual(json.loads(str(response.content, 'utf-8'))['error'], "Unauthorized")
 
+    @patch("videos.decorators.send_ses_email.delay")
     @patch("videos.decorators.is_fastapi_online", return_value=True)
     @patch('videos.tasks.settings')
     @patch('videos.tasks.requests.post')
     def test_successful_text_to_vid_api_call_sets_processing_status(self, mock_post, mock_settings,
-                                                                    mock_fastapi_online):
+                                                                    mock_fastapi_online, mock_send_email_pch):
         mock_settings.VIDEOAPI_BASE_URL = "http://fakeapi.com"
         mock_response = MagicMock()
         mock_response.raise_for_status.return_value = None
@@ -569,11 +570,14 @@ class VideoTestCase(TestCase):
         self.assertEqual(result, "Successfully sent to FASTAPI")
         video_after = Video.objects.get(pk=4)
         self.assertEqual(video_after.status, "processing")
+        mock_send_email_pch.assert_not_called()
 
+    @patch("videos.decorators.send_ses_email.delay")
     @patch("videos.decorators.is_fastapi_online", return_value=True)
     @patch('videos.tasks.settings')
     @patch('videos.tasks.requests.post')
-    def test_successful_text_to_vid_api_call_raise_exception(self, mock_post, mock_settings, mock_fastapi_online):
+    def test_successful_text_to_vid_api_call_raise_exception(self, mock_post, mock_settings, mock_fastapi_online,
+                                                             mock_send_email_pch):
         mock_settings.VIDEOAPI_BASE_URL = "http://fakeapi.com"
         mock_response = MagicMock()
         mock_response.raise_for_status.side_effect = TypeError
@@ -589,11 +593,14 @@ class VideoTestCase(TestCase):
             video_after = Video.objects.get(pk=4)
             self.assertEqual(video_after.status, "error")
 
+        mock_send_email_pch.assert_not_called()
+
+    @patch("videos.decorators.send_ses_email.delay")
     @patch("videos.decorators.is_fastapi_online", return_value=True)
     @patch('videos.tasks.settings')
     @patch('videos.tasks.requests.post')
     def test_successful_text_to_vid_api_call_raise_requests_exception(self, mock_post, mock_settings,
-                                                                      mock_fastapi_online):
+                                                                      mock_fastapi_online, mock_send_email_pch):
         mock_settings.VIDEOAPI_BASE_URL = "http://fakeapi.com"
         mock_response = MagicMock()
         mock_response.raise_for_status.side_effect = requests.exceptions.RequestException
@@ -608,11 +615,14 @@ class VideoTestCase(TestCase):
             send_request_to_text_to_vid_api(video_id=video.pk, prompt=video.prompt)
             video_after = Video.objects.get(pk=4)
             self.assertEqual(video_after.status, "error")
+        mock_send_email_pch.assert_not_called()
 
+    @patch("videos.decorators.send_ses_email.delay")
     @patch("videos.decorators.is_fastapi_online", return_value=True)
     @patch('videos.tasks.settings')
     @patch('videos.tasks.requests.post')
-    def test_successful_text_to_vid_api_call_wrong_json_resp(self, mock_post, mock_settings, mock_fastapi_online):
+    def test_successful_text_to_vid_api_call_wrong_json_resp(self, mock_post, mock_settings, mock_fastapi_online,
+                                                             mock_send_email_pch):
         mock_settings.VIDEOAPI_BASE_URL = "http://fakeapi.com"
         mock_response = MagicMock()
         mock_response.raise_for_status.return_value = None
@@ -629,12 +639,14 @@ class VideoTestCase(TestCase):
         self.assertEqual(result, "Error when sent to FASTAPI")
         video_after = Video.objects.get(pk=4)
         self.assertEqual(video_after.status, "error")
+        mock_send_email_pch.assert_not_called()
 
+    @patch("videos.decorators.send_ses_email.delay")
     @patch("videos.decorators.is_fastapi_online", return_value=False)
     @patch('videos.tasks.settings')
     @patch('videos.tasks.requests.post')
     def test_successful_text_to_vid_api_call_sets_retry_status(self, mock_post, mock_settings,
-                                                                    mock_fastapi_online):
+                                                                    mock_fastapi_online, mock_send_email_pch):
         mock_settings.VIDEOAPI_BASE_URL = "http://fakeapi.com"
         mock_response = MagicMock()
         mock_response.raise_for_status.return_value = None
@@ -651,6 +663,7 @@ class VideoTestCase(TestCase):
         self.assertIsNone(result)
         video_after = Video.objects.get(pk=4)
         self.assertEqual(video_after.status, "retry")
+        mock_send_email_pch.assert_called()
 
 
 class VideoHelpersTestCase(TestCase):
